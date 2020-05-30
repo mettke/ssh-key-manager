@@ -1,0 +1,32 @@
+# postgres
+~/.cargo/bin/diesel migration run \
+    --migration-dir='./database/diesel/migrations.postgres' \
+    --database-url='postgres://ska:ska@localhost.localdomain:5432/ska'
+
+cargo run -- \
+    --db-type postgres --db-host localhost.localdomain --db-port 5432 \
+    --db-name ska --db-user ska --db-pass ska
+
+# mysql
+~/.cargo/bin/diesel migration run \
+    --migration-dir='./database/diesel/migrations.mysql' \
+    --database-url='mysql://ska:ska@localhost.localdomain:3306/ska'
+
+cargo run -- \
+    --db-type mysql --db-host localhost.localdomain --db-port 3306 \
+    --db-name ska --db-user ska --db-pass ska
+
+# Connect to mysql/mariadb
+mysql -u ska -p ska
+
+# Connect to postgres
+psql -d ska -U ska
+
+# Backup keycloak
+docker exec -it docker_kc-pq_1 pg_dump keycloak -U keycloak > kc-init.sql
+
+# Run Tests
+cargo test -- --test-threads=1
+
+# Update images
+docker images |grep -v REPOSITORY|awk '{print $1":"$2}'|xargs -L1 docker pull

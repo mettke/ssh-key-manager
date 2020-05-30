@@ -1,0 +1,165 @@
+diff --git Cargo.toml Cargo.toml
+index 2a3ebbb..1fbe5e7 100644
+--- Cargo.toml
++++ Cargo.toml
+@@ -35,7 +35,7 @@ itertools = "0.7.8"
+ log = "0.4"
+ oauth2 = "=3.0.0-alpha.9"
+ rand = "0.6"
+-ring = "0.14"
++ring = "0.16"
+ serde = "1.0"
+ serde_derive = "1.0"
+ serde_json = "1.0"
+diff --git src/core/crypto.rs src/core/crypto.rs
+index 8dbe3c7..2e5b8dc 100644
+--- src/core/crypto.rs
++++ src/core/crypto.rs
+@@ -1,33 +1,33 @@
+-use ring::digest;
+ use ring::hmac;
+ use ring::rand::SecureRandom;
+ use ring::signature as ring_signature;
+-use untrusted::Input;
+ 
+ use crate::types::Base64UrlEncodedBytes;
+ use crate::{JsonWebKey, SignatureVerificationError, SigningError};
+ 
+ use super::{CoreJsonWebKey, CoreJsonWebKeyType};
+ 
++use std::ops::Deref;
++
+ pub fn sign_hmac(
+     key: &[u8],
+-    digest_alg: &'static digest::Algorithm,
++    hmac_alg: hmac::Algorithm,
+     msg: &[u8],
+-) -> hmac::Signature {
+-    let signing_key = hmac::SigningKey::new(digest_alg, key);
++) -> hmac::Tag {
++    let signing_key = hmac::Key::new(hmac_alg, key);
+     hmac::sign(&signing_key, msg)
+ }
+ 
+ pub fn verify_hmac(
+     key: &CoreJsonWebKey,
+-    digest_alg: &'static digest::Algorithm,
++    hmac_alg: hmac::Algorithm,
+     msg: &[u8],
+     signature: &[u8],
+ ) -> Result<(), SignatureVerificationError> {
+     let k = key.k.as_ref().ok_or_else(|| {
+         SignatureVerificationError::InvalidKey("Symmetric key `k` is missing".to_string())
+     })?;
+-    let verification_key = hmac::VerificationKey::new(digest_alg, k);
++    let verification_key = hmac::Key::new(hmac_alg, k);
+     hmac::verify(&verification_key, msg, signature)
+         .map_err(|_| SignatureVerificationError::CryptoError("bad HMAC".to_string()))
+ }
+@@ -68,12 +68,9 @@ pub fn verify_rsa_signature(
+     signature: &[u8],
+ ) -> Result<(), SignatureVerificationError> {
+     let (n, e) = rsa_public_key(&key).map_err(SignatureVerificationError::InvalidKey)?;
++    let public_key = ring_signature::RsaPublicKeyComponents { n: n.deref(), e: e.deref() };
+ 
+-    ring_signature::primitive::verify_rsa(
+-        params,
+-        (Input::from(n), Input::from(e)),
+-        Input::from(msg),
+-        Input::from(signature),
+-    )
+-    .map_err(|_| SignatureVerificationError::CryptoError("bad signature".to_string()))
++    public_key
++        .verify(params, msg, signature)
++        .map_err(|_| SignatureVerificationError::CryptoError("bad signature".to_string()))
+ }
+diff --git src/core/jwk.rs src/core/jwk.rs
+index b3baa6c..82e2c76 100644
+--- src/core/jwk.rs
++++ src/core/jwk.rs
+@@ -1,10 +1,9 @@
+ use base64;
+ use oauth2::helpers::variant_name;
+-use ring::digest;
+ use ring::rand;
+ use ring::signature as ring_signature;
+ use ring::signature::KeyPair;
+-use untrusted::Input;
++use ring::hmac;
+ 
+ use crate::types::helpers::deserialize_option_or_none;
+ use crate::types::Base64UrlEncodedBytes;
+@@ -156,13 +155,13 @@ impl JsonWebKey<CoreJwsSigningAlgorithm, CoreJsonWebKeyType, CoreJsonWebKeyUse>
+                 signature,
+             ),
+             CoreJwsSigningAlgorithm::HmacSha256 => {
+-                crypto::verify_hmac(self, &digest::SHA256, message, signature)
++                crypto::verify_hmac(self, hmac::HMAC_SHA256, message, signature)
+             }
+             CoreJwsSigningAlgorithm::HmacSha384 => {
+-                crypto::verify_hmac(self, &digest::SHA384, message, signature)
++                crypto::verify_hmac(self, hmac::HMAC_SHA384, message, signature)
+             }
+             CoreJwsSigningAlgorithm::HmacSha512 => {
+-                crypto::verify_hmac(self, &digest::SHA512, message, signature)
++                crypto::verify_hmac(self, hmac::HMAC_SHA512, message, signature)
+             }
+             ref other => Err(SignatureVerificationError::UnsupportedAlg(
+                 variant_name(other).to_string(),
+@@ -207,10 +206,10 @@ impl
+         signature_alg: &CoreJwsSigningAlgorithm,
+         message: &[u8],
+     ) -> Result<Vec<u8>, SigningError> {
+-        let digest_alg = match *signature_alg {
+-            CoreJwsSigningAlgorithm::HmacSha256 => &digest::SHA256,
+-            CoreJwsSigningAlgorithm::HmacSha384 => &digest::SHA384,
+-            CoreJwsSigningAlgorithm::HmacSha512 => &digest::SHA512,
++        let hmac_alg = match *signature_alg {
++            CoreJwsSigningAlgorithm::HmacSha256 => hmac::HMAC_SHA256,
++            CoreJwsSigningAlgorithm::HmacSha384 => hmac::HMAC_SHA384,
++            CoreJwsSigningAlgorithm::HmacSha512 => hmac::HMAC_SHA512,
+             ref other => {
+                 return Err(SigningError::UnsupportedAlg(
+                     variant_name(other).to_string(),
+@@ -218,7 +217,7 @@ impl
+             }
+         };
+         Ok(
+-            crypto::sign_hmac(self.secret.as_ref(), &digest_alg, message)
++            crypto::sign_hmac(self.secret.as_ref(), hmac_alg, message)
+                 .as_ref()
+                 .into(),
+         )
+@@ -248,7 +247,7 @@ impl CoreRsaPrivateSigningKey {
+     /// Converts an RSA private key (in PEM format) to a JWK representing its public key.
+     ///
+     pub fn from_pem(pem: &str, kid: Option<JsonWebKeyId>) -> Result<Self, String> {
+-        Self::from_pem_internal(pem, Box::new(rand::SystemRandom), kid)
++        Self::from_pem_internal(pem, Box::new(rand::SystemRandom::new()), kid)
+     }
+ 
+     pub(crate) fn from_pem_internal(
+@@ -266,7 +265,7 @@ impl CoreRsaPrivateSigningKey {
+         let der = base64::decode_config(base64_pem, base64::MIME)
+             .map_err(|_| "Failed to decode RSA private key body as base64".to_string())?;
+ 
+-        let key_pair = ring_signature::RsaKeyPair::from_der(Input::from(&der))
++        let key_pair = ring_signature::RsaKeyPair::from_der(&der)
+             .map_err(|err| err.description_().to_string())?;
+         Ok(Self { key_pair, rng, kid })
+     }
+@@ -311,14 +310,12 @@ impl
+                 public_key
+                     .modulus()
+                     .big_endian_without_leading_zero()
+-                    .as_slice_less_safe()
+                     .into(),
+             )),
+             e: Some(Base64UrlEncodedBytes::new(
+                 public_key
+                     .exponent()
+                     .big_endian_without_leading_zero()
+-                    .as_slice_less_safe()
+                     .into(),
+             )),
+             k: None,

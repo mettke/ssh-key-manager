@@ -1,0 +1,48 @@
+{{#> par_list_view }}
+{{#*inline "hactive"}}active{{/inline}}
+{{#*inline "name_p"}}Groups{{/inline}}
+{{#*inline "name"}}Group{{/inline}}
+{{#*inline "name_l"}}group{{/inline}}
+
+{{#*inline "filter"}}
+<div class="col-md-6 form-group">
+	<label for="ipaddress-search">Name (<a
+			href="https://www.postgresql.org/docs/8.3/functions-matching.html">like</a>)</label>
+	<input type="text" id="ipaddress-search" name="name" class="form-control" value="{{param.name}}">
+</div>
+{{/inline}}
+
+{{#*inline "table_header"}}
+<th>Full name</th>
+<th>OAuth Scope</th>
+<th>Ldap Group</th>
+
+{{/inline}}
+
+{{#*inline "table_body"}}
+<tr></tr>
+<td><a href="{{this.entity_id}}" class="group">{{this.name}}</a></td>
+<td>{{this.oauth_scope}}</td>
+<td>{{this.ldap_group}}</td>
+</tr>
+{{/inline}}
+
+{{#*inline "form"}}
+<input type="hidden" name="name" value="{{@root.param.name}}">
+{{/inline}}
+
+{{#*inline "add_form"}}
+<div class="form-group">
+	<label for="name">Name</label>
+	<input type="text" id="name" name="name" class="form-control" required>
+</div>
+<div class="form-group">
+	<label for="uid">OAuth Scope (Optional)</label>
+	<input type="text" id="oauth_scope" name="oauth_scope" class="form-control">
+</div>
+<div class="form-group">
+	<label for="uid">Ldap Group (Optional)</label>
+	<input type="text" id="ldap_group" name="ldap_group" class="form-control">
+</div>
+{{/inline}}
+{{/par_list_view}}

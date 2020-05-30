@@ -1,0 +1,87 @@
+{{#> par_base }}
+{{#*inline "iactive"}}active{{/inline}}
+{{#*inline "content"}}
+<h1>Keys management</h1>
+<p>Welcome to the SSH Key Authority server.</p>
+
+{{#if sub.keys.count}}
+<h2>Your public keys</h2>
+
+<p>{{sub.keys.count}} public key{{#plural sub.keys.count}}{{/plural}} found</p>
+{{#> par_list page_name="ppage" entries=sub.keys.data page=sub.keys.page page_max=sub.keys.page_max }}
+{{#*inline "table_header"}}
+{{#> par_pubkey_header}}
+{{/par_pubkey_header}}
+{{/inline}}
+
+{{#*inline "table_body"}}
+{{#> par_pubkey_body link_base="publickeys" }}
+{{/par_pubkey_body}}
+{{/inline}}
+{{/par_list}}
+<p><button id="add_key_button" class="btn btn-default">Add another public key</button></p>
+<form method="post" action="#" class="hidden" id="add_key_form">
+  <input type="hidden" id="csrf" name="csrf" value="{{csrf}}">
+  <div class="form-group">
+    <label for="add_public_key">Public key</label>
+    <textarea class="form-control" rows="4" id="add_public_key" name="data" required></textarea>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-8">
+      <button type="submit" name="add_key" value="1" class="btn btn-primary btn-lg btn-block">Add public key</button>
+    </div>
+    <div class="col-md-2">
+      <button type="button" class="btn btn-info btn-lg btn-block">Help</button>
+    </div>
+    <div class="col-md-2">
+      <button type="button" class="btn btn-default btn-lg btn-block">Cancel</button>
+    </div>
+  </div>
+  <div id="help" class="hidden">
+    {{#> par_keygen_help }}
+    {{/par_keygen_help}}
+  </div>
+</form>
+{{#if sub.servers.count}}
+<h2>Your servers</h2>
+<p>You are listed as an administrator for the following servers:</p>
+
+<p>{{sub.servers.count}} server{{#plural sub.servers.count}}{{/plural}} found</p>
+{{#> par_list page_name="spage" entries=sub.servers.data page=sub.servers.page page_max=sub.servers.page_max }}
+{{#*inline "table_header"}}
+<th>Name</th>
+<th>Hostname</th>
+<th>Config</th>
+<th>Status</th>
+{{/inline}}
+
+{{#*inline "table_body"}}
+<tr>
+  <td><a href="/servers/{{this.id}}" class="server">{{this.name}}</a></td>
+  <td><a href="/servers/{{this.id}}" class="server">{{this.hostname}}</a></td>
+  <td class="nowrap">{{transform_config this.key_management this.authorization}}</td>
+  <td class="nowrap {{transform_sync_label this.sync_status this.key_management}}">
+    {{transform_sync this.sync_status}}
+  </td>
+</tr>
+{{/inline}}
+{{/par_list}}
+{{/if}}
+{{else}}
+<h2>Getting started</h2>
+<p>To start using the key management system, you must first generate a "key pair". The instructions for doing this vary
+  based on your computer's Operating System (OS).</p>
+{{#> par_keygen_help }}
+{{/par_keygen_help}}
+<form method="post" action="#">
+  <input type="hidden" id="csrf" name="csrf" value="{{csrf}}">
+  <div class="form-group">
+    <label for="public_key">Public key</label>
+    <textarea class="form-control" rows="4" id="add_public_key" name="data" required></textarea>
+  </div>
+  <div class="form-group"><button class="btn btn-primary btn-lg btn-block" name="add_key" value="1">Add public
+      key</button></div>
+</form>
+{{/if}}
+{{/inline}}
+{{/par_base}}

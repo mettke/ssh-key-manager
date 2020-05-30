@@ -1,0 +1,10 @@
+{{#> par_base }}
+{{#*inline "content"}}
+<h1>Login</h1>
+<p>Welcome to the SSH Key Authority server.</p>
+<form action="/auth/oauth2" method="get">
+  <input type="hidden" id="red" name="red" value="{{path}}">
+  <input type="submit" value="OAuth2" class="btn btn-default btn-xs" />
+</form>
+{{/inline}}
+{{/par_base}}

@@ -1,0 +1,12 @@
+<div class="tab-pane fade" id="add">
+    <h2 class="sr-only">Add {{> name_l }}</h2>
+    <form method="post" action="#">
+        <input type="hidden" id="csrf" name="csrf" value="{{csrf}}">
+        {{#> add_form}}
+        {{/add_form}}
+        <div class="btn-group" role="group">
+            <button type="submit" name="add" value="1" class="btn btn-primary">Add {{> name_l }}</button>
+            <button type="reset" name="add" value="1" class="btn btn-secondary">Clear</button>
+        </div>
+    </form>
+</div>

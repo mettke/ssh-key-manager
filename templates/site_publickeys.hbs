@@ -1,0 +1,65 @@
+{{#> par_list_view }}
+{{#*inline "pactive"}}active{{/inline}}
+{{#*inline "name_p"}}Public keys{{/inline}}
+{{#*inline "name"}}Public key{{/inline}}
+{{#*inline "name_l"}}public key{{/inline}}
+
+{{#*inline "filter"}}
+<div class="col-md-2 form-group">
+	<label for="type-search">Key type</label>
+	<input type="text" id="type-search" name="type" class="form-control" value="{{param.type_}}">
+</div>
+<div class="col-md-6 form-group">
+	<label for="fingerprint-search">Fingerprint</label>
+	<input type="text" id="fingerprint-search" name="fingerprint" class="form-control" value="{{#if param.fingerprint_md5}}{{param.fingerprint_md5}}{{else}}{{param.fingerprint_sha256}}{{/if}}">
+</div>
+<div class="col-md-2 form-group">
+	<label for="keysize-min">Min key size</label>
+	<div class="input-group">
+		<span class="input-group-addon">≥</span>
+		<input type="text" id="keysize-min" name="keysize-min" class="form-control" value="{{param.keysize_ge}}">
+	</div>
+</div>
+<div class="col-md-2 form-group">
+	<label for="keysize-max">Max key size</label>
+	<div class="input-group">
+		<span class="input-group-addon">≤</span>
+		<input type="text" id="keysize-max" name="keysize-max" class="form-control" value="{{param.keysize_le}}">
+	</div>
+</div>
+<div class="col-md-2 form-group">
+	<label for="ipaddress-search">Comment (<a
+			href="https://www.postgresql.org/docs/8.3/functions-matching.html">like</a>)</label>
+	<input type="text" id="ipaddress-search" name="comment" class="form-control" value="{{param.comment}}">
+</div>
+{{/inline}}
+
+{{#*inline "table_header"}}
+{{#> par_pubkey_header}}
+{{/par_pubkey_header}}
+{{/inline}}
+
+{{#*inline "table_body"}}
+{{#> par_pubkey_body link_base="." }}
+{{/par_pubkey_body}}
+{{/inline}}
+
+{{#*inline "form"}}
+<input type="hidden" id="type-search" name="type" value="{{@root.param.type}}">
+<input type="hidden" id="fingerprint-search" name="fingerprint" value="{{@root.param.fingerprint}}">
+<input type="hidden" id="keysize-min" name="keysize-min" value="{{@root.param.keysize-min}}">
+<input type="hidden" id="keysize-max" name="keysize-max" value="{{@root.param.keysize-max}}">
+<input type="hidden" id="comment-search" name="comment" value="{{@root.param.comment}}">
+{{/inline}}
+
+{{#*inline "add_form"}}
+<div class="form-group">
+	<label for="add_public_key">Public key</label>
+	<textarea class="form-control" rows="4" name="data" required></textarea>
+</div>
+<div class="form-group">
+	<label for="uid">Username</label>
+	<input type="text" id="uid" name="uid" class="form-control" required>
+</div>
+{{/inline}}
+{{/par_list_view}}

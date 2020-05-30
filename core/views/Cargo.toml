@@ -1,0 +1,15 @@
+[package]
+name = "core_views"
+version = "0.1.0"
+authors = ["Marc Mettke <marc@itmettke.de>"]
+edition = "2018"
+description = "Core Library providing structures for object representation"
+license-file = "../../LICENSE"
+repository = "https://github.com/mettke/ssh-key-authority"
+readme = "README.md"
+keywords = ["ssh", "key", "management", "views"]
+categories = ["data-structures"]
+
+[dependencies]
+core_common = { path = "../common" }
+serde = { version = "1.0", features = ["derive"] }

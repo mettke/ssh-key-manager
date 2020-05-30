@@ -1,0 +1,295 @@
+{{#> par_base }}
+{{#*inline "uactive"}}
+active
+{{/inline}}
+{{#*inline "content"}}
+<h1><span class="glyphicon glyphicon-user" title="User"></span> {{user.name}} <small>({{user.uid}})</small></h1>
+<!-- Tab panes -->
+<h3><a href="pubkeys">Public keys</a></h3>
+{{#if (eq sub.public_keys.page_max 0)}}
+<p>{{user.name}} has no public keys uploaded.</p>
+{{else}}
+<p>{{sub.public_keys.count}} public key{{#plural sub.public_keys.count}}{{/plural}} found</p>
+{{#> par_list page_name="ppage" entries=sub.public_keys.data page=sub.public_keys.page page_max=sub.public_keys.page_max }}
+{{#*inline "table_header"}}
+{{#> par_pubkey_header}}
+{{/par_pubkey_header}}
+{{/inline}}
+
+{{#*inline "table_body"}}
+{{#> par_pubkey_body link_base="../../publickeys" }}
+{{/par_pubkey_body}}
+{{/inline}}
+{{/par_list}}
+{{/if}}
+{{#if (or user.is_admin sub.is_self)}}
+<h3>Group Member</h3>
+{{#if (eq sub.groups_dir_len 0)}}
+<p>{{this.name}} is not a member of any groups.</p>
+{{else}}
+<p>{{this.name}} is a member of the following groups:</p>
+<div class="container">
+	<div class="row">
+		<div class="col-sm-6">
+			<h4>Direkt Member</h4>
+			<div class="table-responsive">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Group</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{#each sub.groups_dir}}
+						<tr>
+							<td><a href="../../groups/{{this.group_id}}" class="group">{{this.name}}</a></td>
+						</tr>
+						{{/each}}
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="col-sm-6">
+			<h4>Recursive Membership</h4>
+			<div class="table-responsive">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Group</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{#each sub.groups}}
+						<tr>
+							<td><a href="../../groups/{{this.group_id}}" class="group">{{this.name}}</a>
+							</td>
+						</tr>
+						{{/each}}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+{{/if}}
+<h3>Group Admin</h3>
+{{#if (eq sub.groups_admined_len 0)}}
+<p>{{this.name}} is not an administrator of any groups.</p>
+{{else}}
+<p>{{this.name}} is an administrator of the following groups:</p>
+<div class="container">
+	<div class="row">
+		<div class="col-sm-6">
+			<h4>Direkt Admin</h4>
+			<div class="table-responsive">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Group</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{#each sub.groups_admined_dir}}
+						<tr>
+							<td><a href="../../groups/{{this.group_id}}" class="group">{{this.name}}</a></td>
+						</tr>
+						{{/each}}
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="col-sm-6">
+			<h4>Recursive Admin</h4>
+			<div class="table-responsive">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Group</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{#each sub.groups_admined}}
+						<tr>
+							<td><a href="../../groups/{{this.group_id}}" class="group">{{this.name}}</a></td>
+						</tr>
+						{{/each}}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+{{/if}}
+{{/if}}
+<h3>Access</h3>
+{{#if (eq sub.access_len 0)}}
+<p>{{this.name}} has not been granted access to any entities.</p>
+{{else}}
+<p>{{this.name}} has been granted access to the following entities:</p>
+<div class="container">
+	<div class="row">
+		<div class="col-sm-6">
+			<h4>Direkt Access</h4>
+			<div class="table-responsive">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Entity</th>
+							<th>Granted by</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{#each sub.access_dir}}
+						<tr>
+							<td>
+
+								{{#if (eq this.entity_type "ServerAccount")}}
+							<td><a href="../../servers/unimplemented/accounts/{{this.entity_id}}"
+									class="serveraccount">{{this.name}}@unimplemented</a></td>
+							<td><em>Server account</em></td>
+							{{/if}}
+							{{#if (eq this.entity_type "Group")}}
+							<td><a href="../../groups/{{this.entity_id}}" class="group">{{this.name}}</a></td>
+							<td><em>Group</em></td>
+							{{/if}}
+							</td>
+						</tr>
+						{{/each}}
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="col-sm-6">
+			<h4>Recursive Access</h4>
+			<div class="table-responsive">
+				<table class="table">
+					<thead>
+						<tr>
+							<th colspan="2">Entity</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{#each sub.access}}
+						<tr>
+							{{#if (eq this.entity_type "ServerAccount")}}
+							<td><a href="../../servers/unimplemented/accounts/{{this.entity_id}}"
+									class="serveraccount">{{this.name}}@unimplemented</a></td>
+							<td><em>Server account</em></td>
+							{{/if}}
+							{{#if (eq this.entity_type "Group")}}
+							<td><a href="../../groups/{{this.entity_id}}" class="group">{{this.name}}</a></td>
+							<td><em>Group</em></td>
+							{{/if}}
+						</tr>
+						{{/each}}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+{{/if}}
+<h3>Server Accounts</h3>
+{{#if (eq sub.accounts_len 0)}}
+<p>{{this.name}} has not been granted access to any server accounts.</p>
+{{else}}
+<p>{{this.name}} has been granted access to the following server accounts:</p>
+<h4>Direkt Access</h4>
+<div class="table-responsive">
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Entity</th>
+				<th>Granted by</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{#each sub.accounts}}
+			<tr>
+				<td>
+				<td><a href="../../servers/unimplemented/accounts/{{this.entity_id}}"
+						class="serveraccount">{{this.name}}@unimplemented</a></td>
+				<td><em>Server account</em></td>
+				</td>
+			</tr>
+			{{/each}}
+		</tbody>
+	</table>
+</div>
+{{/if}}
+<h3>Server administration</h3>
+{{#if (eq sub.servers_admined_len 0)}}
+<p>{{this.name}} is not an administrator for any servers.</p>
+{{else}}
+<p>{{this.name}} is an administrator for the following servers:</p>
+<form method="post" action="#">
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-6">
+				<h4>Direkt Access</h4>
+				{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+				<div class="table-responsive">
+					<table class="table" id="admined_servers">
+						<thead>
+							<tr>
+								<th>Hostname</th>
+								<th>Name</th>
+							</tr>
+						</thead>
+						<tbody>
+							{{#each sub.servers_admined_dir}}
+							<tr>
+								{{#if (eq this.entity_type "Server")}}
+								<td><a href="../../servers/{{this.entity_id}}" class="server">{{this.hostname}}</a></td>
+								<td><em>Server</em></td>
+								{{/if}}
+								<td>{{this.name}}</td>
+							</tr>
+							{{/each}}
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="col-sm-6">
+				<h4>Recursive Access</h4>
+				<div class="table-responsive">
+					<table class="table" id="admined_servers">
+						<thead>
+							<tr>
+								<th>Hostname</th>
+								<th>Name</th>
+							</tr>
+						</thead>
+						<tbody>
+							{{#each sub.servers_admined_dir}}
+							<tr>
+								{{#if (eq this.entity_type "Server")}}
+								<td><a href="../../servers/{{this.entity_id}}" class="server">{{this.hostname}}</a>
+								</td>
+								<td><em>Server</em></td>
+								{{/if}}
+								<td>{{this.name}}</td>
+							</tr>
+							{{/each}}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</form>
+{{/if}}
+{{#if user.is_admin}}
+<h3>User managment</h3>
+<form method="post" action="#" class="form-horizontal">
+	{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+	<div class="form-group">
+		<div class="col-sm-2">
+			<button type="submit" name="delete_user" value="1" class="btn btn-primary">Delete
+				user</button>
+		</div>
+	</div>
+</form>
+{{/if}}
+{{/inline}}
+{{/par_base}}

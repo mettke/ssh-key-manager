@@ -1,0 +1,411 @@
+{{#> par_base }}
+{{#*inline "hactive"}}
+active
+{{/inline}}
+{{#*inline "content"}}
+<h1><span class="glyphicon glyphicon-list-alt" title="Group"></span> {{sub.group.name}}</h1>
+{{#if (or user.is_admin sub.is_admin)}}
+<ul class="nav nav-tabs">
+	<li><a href="#members" data-toggle="tab">Members</a></li>
+	<li><a href="#access" data-toggle="tab">Access</a></li>
+	<li><a href="#outbound" data-toggle="tab">Outbound access</a></li>
+	<li><a href="#admins" data-toggle="tab">Administrators</a></li>
+	{{#if (and user.is_admin (not sub.group.system))}}
+	<li><a href="#settings" data-toggle="tab">Settings</a></li>
+	{{/if}}
+</ul>
+
+<!-- Tab panes -->
+<div class="tab-content">
+	<div class="tab-pane fade" id="members">
+		<h2 class="sr-only">Group members</h2>
+		{{#if (eq sub.member_len 0)}}
+		<p>No members have been added to this group yet.</p>
+		{{else}}
+		<form method="post" action="#">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			{{#if sub.group.system}}
+			<div class="alert alert-info">
+				This is a system group. Its membership list cannot be edited.
+			</div>
+			{{/if}}
+			<table class="table table-bordered table-striped">
+				<thead>
+					<tr>
+						<th colspan="2">Member</th>
+						<th>Status</th>
+						{{#unless sub.group.system}}
+						<th>Actions</th>
+						{{/unless}}
+					</tr>
+				</thead>
+				<tbody>
+					{{#each sub.members}}
+					<tr>
+						{{#if (eq this.entity_type "User")}}
+						<td><a href="../../users/{{this.entity_id}}" class="user">{{this.name}}</a></td>
+						<td><em>User</em></td>
+						{{/if}}
+						{{#if (eq this.entity_type "ServerAccount")}}
+						<td><a href="../../servers/unimplemented/accounts/{{this.entity_id}}"
+								class="serveraccount">{{this.name}}@unimplemented</a></td>
+						<td><em>Server account</em></td>
+						{{/if}}
+						{{#if (eq this.entity_type "Group")}}
+						<td><a href="../../groups/{{this.entity_id}}" class="group">{{this.name}}</a></td>
+						<td><em>Group</em></td>
+						{{/if}}
+						<td>
+							Added on {{this.grant_date}}
+						</td>
+						{{#unless @root.sub.group.system}}
+						<td>
+							<button type="submit" name="delete_member" value="{{this.entity_id}}"
+								class="btn btn-default btn-xs"><span class="glyphicon glyphicon-ban-circle"></span>
+								Remove from group</button>
+						</td>
+						{{/unless}}
+					</tr>
+					{{/each}}
+				</tbody>
+			</table>
+		</form>
+		{{/if}}
+		{{#unless @root.sub.group.system}}
+		<form method="post" action="#">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<h3>Add user</h3>
+			<div class="row">
+				<div class="form-group col-md-9">
+					<div class="input-group">
+						<span class="input-group-addon"><label for="username"><span class="glyphicon glyphicon-user"
+									title="User"></span><span class="sr-only">User name</span></label></span>
+						<input type="text" id="username" name="username" class="form-control" placeholder="User name"
+							required list="userlist">
+					</div>
+				</div>
+				<div class="form-group col-md-3">
+					<button type="submit" name="add_member" value="1" class="btn btn-primary btn-block">Add user to
+						group</button>
+				</div>
+			</div>
+		</form>
+		<form method="post" action="#">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<h3>Add group</h3>
+			<div class="row">
+				<div class="form-group col-md-9">
+					<div class="input-group">
+						<span class="input-group-addon"><label for="group"><span class="glyphicon glyphicon-user"
+									title="User"></span><span class="sr-only">Group name</span></label></span>
+						<input type="text" id="group" name="group" class="form-control" placeholder="Group name"
+							required>
+					</div>
+				</div>
+				<div class="form-group col-md-3">
+					<button type="submit" name="add_member" value="1" class="btn btn-primary btn-block">Add group to
+						group</button>
+				</div>
+			</div>
+		</form>
+		<form method="post" action="#">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<h3>Add server account</h3>
+			<div class="row">
+				<div class="form-group col-md-2">
+					<div class="input-group">
+						<span class="input-group-addon"><label for="account"><span class="glyphicon glyphicon-log-in"
+									title="Server account"></span><span class="sr-only">Account</span></label></span>
+						<input type="text" id="account" name="account" class="form-control" placeholder="Account name"
+							required>
+					</div>
+				</div>
+				<div class="form-group col-md-7">
+					<div class="input-group">
+						<span class="input-group-addon"><label for="hostname">@</label></span>
+						<input type="text" id="hostname" name="hostname" class="form-control" placeholder="Hostname"
+							required>
+					</div>
+				</div>
+				<div class="form-group col-md-3">
+					<button type="submit" name="add_member" value="1" class="btn btn-primary btn-block">Add server
+						account to group</button>
+				</div>
+			</div>
+		</form>
+		{{/unless}}
+	</div>
+	<div class="tab-pane fade" id="access">
+		<h2 class="sr-only">Access</h2>
+		{{#if (eq sub.access_to_len 0)}}
+		<p>No access rules are associated with this group.</p>
+		{{else}}
+		<form method="post" action="#">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<table class="table table-bordered table-striped">
+				<thead>
+					<tr>
+						<th colspan="2">Access for</th>
+						<th>Status</th>
+						<th>Options</th>
+						<th>Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{#each sub.access_to}}
+					<tr>
+						{{#if (eq this.entity.entity_type "User")}}
+						<td><a href="../../users/{{this.entity.entity_id}}" class="user">{{this.entity.name}}</a></td>
+						<td><em>User</em></td>
+						</td>
+						{{/if}}
+						{{#if (eq this.entity.entity_type "ServerAccount")}}
+						<td><a href="../../servers/unimplemented/accounts/{{this.entity.entity_id}}"
+								class="serveraccount">{{this.entity.name}}@unimplemented</a></td>
+						<td><em>Server account</em></td>
+						{{/if}}
+						{{#if (eq this.entity.entity_type "Group")}}
+						<td><a href="../../groups/{{this.entity.entity_id}}" class="group">{{this.entity.name}}</a></td>
+						<td><em>Group</em></td>
+						{{/if}}
+						<td>
+							Added on {{this.entity.grant_date}}
+						</td>
+						<td>
+							{{#if (gt this.options_len 0)}}
+							<ul class="compact">
+								{{#each this.options}}
+								<li>
+									<code>
+										{{this.option}} {{#if this.value}}=&quot;<abbr title="{{this.value}}">…</abbr>&quot;{{/if}}
+									</code>
+								</li>
+								{{/each}}
+							</ul>
+							{{/if}}
+						</td>
+						<td>
+							<a href="access_rules/{{this.entity.id}}" class="btn btn-default btn-xs"><span
+									class="glyphicon glyphicon-cog"></span> Configure
+								access</a>
+							<button type="submit" name="delete_access" value="{{this.entity.id}}"
+								class="btn btn-default btn-xs"><span class="glyphicon glyphicon-ban-circle"></span>
+								Remove access</button>
+						</td>
+						{{/each}}
+					</tr>
+				</tbody>
+			</table>
+		</form>
+		{{/if}}
+		<form method="post" action="#">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<h3>Grant user access</h3>
+			<div class="row">
+				<div class="form-group col-md-8">
+					<div class="input-group">
+						<span class="input-group-addon"><label for="access-username"><span
+									class="glyphicon glyphicon-user" title="User"></span><span class="sr-only">User
+									name</span></label></span>
+						<input type="text" id="access-username" name="username" class="form-control"
+							placeholder="User name" required list="userlist">
+					</div>
+				</div>
+				<div class="form-group col-md-4">
+					<button type="submit" name="add_access" value="1" class="btn btn-primary btn-block">Grant user
+						access to group resources</button>
+				</div>
+			</div>
+		</form>
+		<form method="post" action="#">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<h3>Grant group access</h3>
+			<div class="row">
+				<div class="form-group col-md-8">
+					<div class="input-group">
+						<span class="input-group-addon"><label for="access-group"><span
+									class="glyphicon glyphicon-list-alt" title="Group"></span><span
+									class="sr-only">Group name</span></label></span>
+						<input type="text" id="access-group" name="group" class="form-control" placeholder="Group name"
+							required list="grouplist">
+					</div>
+				</div>
+				<div class="form-group col-md-4">
+					<button type="submit" name="add_access" value="1" class="btn btn-primary btn-block">Grant a group
+						access to this group's resources</button>
+				</div>
+			</div>
+		</form>
+		<form method="post" action="#">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<h3>Grant server account access</h3>
+			<div class="row">
+				<div class="form-group col-md-2">
+					<div class="input-group">
+						<span class="input-group-addon"><label for="access-account"><span
+									class="glyphicon glyphicon-log-in" title="Server account"></span><span
+									class="sr-only">Account</span></label></span>
+						<input type="text" id="access-account" name="account" class="form-control"
+							placeholder="Account name" required>
+					</div>
+				</div>
+				<div class="form-group col-md-6">
+					<div class="input-group">
+						<span class="input-group-addon"><label for="access-hostname">@</label></span>
+						<input type="text" id="access-hostname" name="hostname" class="form-control"
+							placeholder="Hostname" required list="serverlist">
+					</div>
+				</div>
+				<div class="form-group col-md-4">
+					<button type="submit" name="add_access" value="1" class="btn btn-primary btn-block">Grant server
+						account access to group resources</button>
+				</div>
+			</div>
+		</form>
+	</div>
+	<div class="tab-pane fade" id="outbound">
+		<h2 class="sr-only">Outbound access</h2>
+		{{#if (eq sub.access_from_len 0)}}
+		<p>No outgoing access rules are associated with this group.</p>
+		{{else}}
+		<p>This group has access to the following resources:</p>
+		<table class="table table-bordered table-striped">
+			<thead>
+				<tr>
+					<th colspan="2">Access to</th>
+					<th>Status</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{#each sub.access_from}}
+				<tr>
+					{{#if (eq this.entity_type "User")}}
+					<td><a href="../../users/{{this.entity_id}}" class="user">{{this.name}}</a></td>
+					<td><em>User</em></td>
+					</td>
+					{{/if}}
+					{{#if (eq this.entity_type "ServerAccount")}}
+					<td><a href="../../servers/unimplemented/accounts/{{this.entity_id}}"
+							class="serveraccount">{{this.name}}@unimplemented</a></td>
+					<td><em>Server account</em></td>
+					{{/if}}
+					{{#if (eq this.entity_type "Group")}}
+					<td><a href="../../groups/{{this.entity_id}}" class="group">{{this.name}}</a></td>
+					<td><em>Group</em></td>
+					{{/if}}
+					<td>
+						Added on {{this.grant_date}}
+					</td>
+					{{/each}}
+				</tr>
+			</tbody>
+		</table>
+		{{/if}}
+	</div>
+	<div class="tab-pane fade" id="admins">
+		<h2 class="sr-only">Group administrators</h2>
+		{{#if (eq sub.admin_len 0)}}
+		<p class="alert alert-danger">This group does not have any administrators assigned.</p>
+		{{else}}
+		<form method="post" action="<?php outurl($this->data->relative_request_url)?>">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<table class="table table-bordered table-striped">
+				<thead>
+					<tr>
+						<th colspan="2">ID</th>
+						{{#if (or user.is_admin sub.is_admin)}}
+						<th>Actions</th>
+						{{/if}}
+					</tr>
+				</thead>
+				<tbody>
+					{{#each sub.admins}}
+					<tr>
+						{{#if (eq this.entity_type "User")}}
+						<td><a href="../../users/{{this.entity_id}}" class="user">{{this.name}}</a></td>
+						<td><em>User</em></td>
+						{{/if}}
+						{{#if (eq this.entity_type "Group")}}
+						<td><a href="../../groups/{{this.entity_id}}" class="group">{{this.name}}</a></td>
+						<td><em>Group</em></td>
+						{{/if}}
+						</td>
+						{{#if (or @root.user.is_admin @root.sub.is_admin)}}
+						<td>
+							<button type="submit" name="delete_admin" value="{{this.id}}"
+								class="btn btn-default btn-xs"><span class="glyphicon glyphicon-trash"></span> Remove
+								admin</button>
+						</td>
+						{{/if}}
+					</tr>
+					{{/each}}
+				</tbody>
+			</table>
+		</form>
+		{{/if}}
+		{{#if (or @root.user.is_admin @root.sub.is_admin)}}
+		<form method="post" action="#" class="form-inline">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<h3>Add User</h3>
+			<div class="form-group">
+				<label for="user_name" class="sr-only">User name</label>
+				<input type="text" id="user_name" name="user_name" class="form-control" placeholder="User name"
+					required>
+			</div>
+			<button type="submit" name="add_admin" value="1" class="btn btn-primary">Add User</button>
+		</form>
+		<form method="post" action="#" class="form-inline">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<h3>Add Group</h3>
+			<div class="form-group">
+				<label for="user_name" class="sr-only">Group name</label>
+				<input type="text" id="user_name" name="user_name" class="form-control" placeholder="User name"
+					required>
+			</div>
+			<button type="submit" name="add_admin" value="1" class="btn btn-primary">Add Group</button>
+		</form>
+		{{/if}}
+	</div>
+	{{#if (and user.is_admin (not sub.group.system))}}
+	<div class="tab-pane fade" id="settings">
+		<h2 class="sr-only">Settings</h2>
+		<form method="post" action="#" class="form-horizontal">
+			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+			<div class="form-group">
+				<label for="name" class="col-sm-2 control-label">Name</label>
+				<div class="col-sm-10">
+					<input type="text" id="name" name="name" value="{{sub.group.name}}" required class="form-control">
+				</div>
+			</div>
+			<div class="form-group">
+				<label for="uid" class="col-sm-2 control-label">OAuth Scope (Optional)</label>
+				<div class="col-sm-10">
+					<input type="text" id="name" name="name" value="{{sub.group.oauth_scope}}" required
+						class="form-control">
+				</div>
+			</div>
+			<div class="form-group">
+				<label for="uid" class="col-sm-2 control-label">Ldap Group (Optional)</label>
+				<div class="col-sm-10">
+					<input type="text" id="name" name="name" value="{{sub.group.ldap_group}}" required
+						class="form-control">
+				</div>
+			</div>
+			<div class="form-group">
+				<div class="col-sm-offset-2 col-sm-10">
+					<div class="btn-group" role="group">
+						<button type="submit" name="edit_group" value="1" class="btn btn-primary">Change
+							settings</button>
+						<button type="submit" name="del_group" value="1" class="btn btn-secondary">Delete</button>
+					</div>
+				</div>
+			</div>
+		</form>
+	</div>
+	{{/if}}
+</div>
+{{else}}
+<p>You do not have access to manage this group.</p>
+{{/if}}
+{{/inline}}
+{{/par_base}}

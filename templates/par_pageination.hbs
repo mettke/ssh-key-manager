@@ -1,0 +1,48 @@
+{{#unless (and (lt page_max 2) (lt page 2))}}
+<form method="get" action="#" id="pageination">
+    {{> form }}
+    <div class="text-right">
+        <div class="btn-group" role="group" aria-label="...">
+            {{#unless (lt page 2)}}
+            <button class="btn btn-default page-link" type="submit" aria-label="Previous" name="{{page_name}}"
+                value="{{#sub page 1}}{{/sub}}">
+                <span aria-hidden="true">&laquo;</span>
+                <span class="sr-only">Previous</span>
+            </button>
+            {{/unless}}
+            {{#unless (lt page 4)}}
+            <button class="btn btn-default page-link" type="submit" name="{{page_name}}" value="1">1</button>
+            {{/unless}}
+            {{#unless (lt page 3)}}
+            <button class="btn btn-default page-link" type="submit" name="{{page_name}}"
+                value="{{#sub page 2}}{{/sub}}">{{#if (lt page 5)}}{{#sub page 2}}{{/sub}}{{else}}..{{/if}}</button>
+            {{/unless}}
+            {{#unless (lt page 2)}}
+            <button class="btn btn-default page-link" type="submit" name="{{page_name}}"
+                value="{{#sub page 1}}{{/sub}}">{{#sub page 1}}{{/sub}}</button>
+            {{/unless}}
+            <button class="btn btn-default page-link active" type="submit" name="{{page_name}}"
+                value="{{page}}">{{page}}</button>
+            {{#if (lt page page_max)}}
+            <button class="btn btn-default page-link" type="submit" name="{{page_name}}"
+                value="{{#add page 1}}{{/add}}">{{#add page 1}}{{/add}}</button>
+            {{/if}}
+            {{#if (lt (add page 1) page_max)}}
+            <button class="btn btn-default page-link" type="submit" name="{{page_name}}"
+                value="{{#add page 2}}{{/add}}">{{#if (lt (add page 3) page_max)}}..{{else}}{{#add page 2}}{{/add}}{{/if}}</button>
+            {{/if}}
+            {{#if (lt (add page 2) page_max)}}
+            <button class="btn btn-default page-link" type="submit" name="{{page_name}}"
+                value="{{page_max}}">{{page_max}}</button>
+            {{/if}}
+            {{#if (lt page page_max)}}
+            <button class="btn btn-default page-link" type="submit" aria-label="Next" name="{{page_name}}"
+                value="{{#add page 1}}{{/add}}">
+                <span aria-hidden="true">&raquo;</span>
+                <span class="sr-only">Next</span>
+            </button>
+            {{/if}}
+        </div>
+    </div>
+</form>
+{{/unless}}

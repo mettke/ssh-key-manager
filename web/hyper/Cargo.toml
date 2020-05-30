@@ -1,0 +1,16 @@
+[package]
+name = "web_hyper"
+version = "0.1.0"
+authors = ["Marc Mettke <marc@itmettke.de>"]
+edition = "2018"
+description = "Core Library implementation for the hyper framework"
+license-file = "../../LICENSE"
+repository = "https://github.com/mettke/ssh-key-authority"
+readme = "README.md"
+keywords = ["ssh", "key", "management", "hyper"]
+categories = ["web-programming"]
+
+[dependencies]
+core_common = { path = "../../core/common" }
+hyper = "0.13"
+tokio-util = { version = "0.3", features = ["codec"] }

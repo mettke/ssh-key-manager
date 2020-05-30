@@ -1,0 +1,68 @@
+[package]
+name = "ssh-key-authority"
+version = "0.1.0"
+authors = ["Marc Mettke <marc@itmettke.de>"]
+edition = "2018"
+description = "Application for SSH Key Management via SSH"
+license-file = "LICENSE"
+repository = "https://github.com/mettke/ssh-key-authority"
+readme = "README.md"
+keywords = ["ssh", "key", "sshkey", "management", "publickey"]
+categories = ["command-line-utilities"]
+
+[features]
+default = ["diesel_pg", "hyper", "jwt", "handlebars"]
+
+# database
+diesel_pg = ["diesel"]
+diesel_mysql = ["diesel"]
+# Not supposed to be directly used
+diesel = ["database_diesel"]
+
+# web framework
+hyper = ["web_hyper"]
+
+# auth
+jwt = ["sec_token"]
+
+# templating
+handlebars = ["template_handlebars"]
+
+[dependencies]
+clap = "2.33"
+core_app = { path = "core/app" }
+core_common = { path = "core/common" }
+database_diesel = { path = "database/diesel", optional = true }
+log = "0.4"
+sec_token = { path = "sec/token", optional = true }
+simple_logger = "1.3"
+time = "0.2"
+template_handlebars = { path = "template/handlebars", optional = true }
+tokio = { version = "0.2", features = ["macros", "rt-threaded", "signal", "fs"] }
+web_hyper = { path = "web/hyper", optional = true }
+
+[workspace]
+members = [
+    "core/api",
+    "core/app",
+    "core/common",
+    "core/macros",
+    "core/views",
+    "database/diesel",
+    "sec/token",
+    "template/handlebars",
+    "web/hyper",
+]
+
+[patch.'https://github.com/ramosbugs/openidconnect-rs.git']
+openidconnect = { path = './target/patch/f625020' }
+
+[patch.crates-io]
+clap = { path = './target/patch/clap-2.33.1' }
+
+[package.metadata.patch.clap]
+patches = [
+    "patches/clap/ansi_term.patch",
+    "patches/clap/strsim.patch",
+    "patches/clap/warn.patch",
+]

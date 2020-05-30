@@ -1,0 +1,11 @@
+--- Cargo.toml	2020-05-22 18:15:23.609142731 +0200
++++ Cargo.toml.new	2020-05-22 18:15:23.609142731 +0200
+@@ -110,7 +110,7 @@
+ wrap_help = ["term_size", "textwrap/term_size"]
+ yaml = ["yaml-rust"]
+ [target."cfg(not(windows))".dependencies.ansi_term]
+-version = "0.11"
++version = "0.12"
+ optional = true
+ [badges.appveyor]
+ repository = "clap-rs/clap"

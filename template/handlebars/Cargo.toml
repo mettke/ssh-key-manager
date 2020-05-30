@@ -1,0 +1,15 @@
+[package]
+name = "template_handlebars"
+version = "0.1.0"
+authors = ["Marc Mettke <marc@itmettke.de>"]
+edition = "2018"
+description = "Core Library implementation for handlebars"
+license-file = "../../LICENSE"
+repository = "https://github.com/mettke/ssh-key-authority"
+readme = "README.md"
+keywords = ["ssh", "key", "management", "handlebars"]
+categories = ["template-engine"]
+
+[dependencies]
+core_common = { path = "../../core/common" }
+handlebars = { version = "3.0", features = ["dir_source"] }

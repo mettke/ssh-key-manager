@@ -1,0 +1,16 @@
+[package]
+name = "core_app"
+version = "0.1.0"
+authors = ["Marc Mettke <marc@itmettke.de>"]
+edition = "2018"
+description = "Core Library providing app routes"
+license-file = "../../LICENSE"
+repository = "https://github.com/mettke/ssh-key-authority"
+readme = "README.md"
+keywords = ["ssh", "key", "management", "app"]
+categories = ["api-bindings"]
+
+[dependencies]
+core_common = { path = "../common" }
+core_views = { path = "../views" }
+mime_guess = "2.0"

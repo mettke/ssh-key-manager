@@ -1,0 +1,16 @@
+<div class="table-responsive">
+    <table class="table table-condensed">
+        <thead>
+            <tr>
+                {{> table_header }}
+            </tr>
+        </thead>
+        <tbody>
+            {{#each entries}}
+            {{> table_body}}
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{#> par_pageination page_name=page_name page=page page_max=page_max }}
+{{/par_pageination}}

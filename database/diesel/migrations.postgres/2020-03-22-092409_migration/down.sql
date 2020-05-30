@@ -1,0 +1,22 @@
+-- This file should undo anything in `up.sql`
+DROP TABLE IF EXISTS "public_key";
+DROP TABLE IF EXISTS "access_option";
+DROP TYPE IF EXISTS "access_option_type";
+DROP TABLE IF EXISTS "access";
+DROP TABLE IF EXISTS "server_admin";
+DROP TABLE IF EXISTS "event";
+DROP TYPE IF EXISTS "event_type";
+DROP TABLE IF EXISTS "server_note";
+DROP TABLE IF EXISTS "sync_request";
+DROP TABLE IF EXISTS "server_account";
+DROP TABLE IF EXISTS "server";
+DROP TYPE IF EXISTS "server_sync_status";
+DROP TYPE IF EXISTS "server_authorization";
+DROP TYPE IF EXISTS "server_key_management";
+DROP TABLE IF EXISTS "group_member";
+DROP TABLE IF EXISTS "group_admin";
+DROP TABLE IF EXISTS "groups";
+DROP TABLE IF EXISTS "users";
+DROP TYPE IF EXISTS "user_type";
+DROP TABLE IF EXISTS "entity";
+DROP TYPE IF EXISTS "entity_type";

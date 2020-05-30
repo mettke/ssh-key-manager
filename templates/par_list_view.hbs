@@ -1,0 +1,47 @@
+{{#> par_base }}
+{{#*inline "content"}}
+<h1>{{> name_p }}</h1>
+{{#if user.is_admin}}
+<ul class="nav nav-tabs">
+	<li><a href="#list" data-toggle="tab">{{> name }} list</a></li>
+	<li><a href="#add" data-toggle="tab">Add {{> name_l }}</a></li>
+</ul>
+{{/if}}
+
+<!-- Tab panes -->
+<div class="tab-content">
+	<div class="tab-pane fade{{#unless user.is_admin}}in active{{/unless}}" id="list">
+		<h2 class="sr-only">{{> name }} list</h2>
+		<div class="panel-group">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h3 class="panel-title">Filter options</h3>
+				</div>
+				<div id="search_filter">
+					<div class="panel-body">
+						<form>
+							<div class="row">
+								{{> filter }}
+								<input type="hidden" id="page" name="page" value="1">
+							</div>
+							<div class="btn-group" role="group">
+								<button type="submit" class="btn btn-primary">Display results</button>
+								<button type="reset" name="add" value="1" class="btn btn-secondary">Clear</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+		<p>{{sub.count}} {{> name_l }}{{#plural sub.count}}{{/plural}} found</p>
+		{{#> par_list page_name="page" entries=sub.data page=sub.page page_max=sub.page_max }}
+		{{/par_list}}
+	</div>
+
+	{{#if user.is_admin}}
+	{{#> par_add }}
+	{{/par_add}}
+	{{/if}}
+</div>
+{{/inline}}
+{{/par_base}}

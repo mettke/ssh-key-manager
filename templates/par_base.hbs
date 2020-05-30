@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>{{main.title}}</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" type="image/png" href="/static/key_16.png" sizes="16x16">
+    <link rel="icon" type="image/png" href="/static/key_32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="/static/key_96.png" sizes="96x96">
+
+    <link rel="stylesheet" href="/static/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/style.css?{{main.style_mtime}}">
+
+    <script src="/static/header.js?{{main.jsh_mtime}}"></script>
+    <script defer src="/static/jquery.min.js"></script>
+    <script defer src="/static/bootstrap/bootstrap.min.js"></script>
+    <script defer src="/static/extra.js?{{main.js_mtime}}"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <nav class="navbar navbar-inverse">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                        data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="{{base}}"><img
+                            src="/static/logo-header-itmettke.png">{{main.title}}</a>
+                </div>
+
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav">
+                        <li class="{{> sactive}}"><a href="{{base}}servers">Servers</a></li>
+                        <li class="{{> uactive}}"><a href="{{base}}users">Users</a></li>
+                        <li class="{{> hactive}}"><a href="{{base}}groups">Groups</a></li>
+                        <li class="{{> pactive}}"><a href="{{base}}publickeys">Public keys</a></li>
+                    </ul>
+                </div>
+                <ul class="nav navbar-nav navbar-right">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                            aria-expanded="false">{{#if user.uid}}{{#if user.name}}{{user.name}}{{else}}{{user.uid}}{{/if}}{{else}}Login{{/if}}
+                            <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{{base}}">Home</a></li>
+                            {{#if user.uid}}
+                            <li><a href="{{base}}users/{{user.id}}">Profile</a></li>
+                            {{#if user.is_admin}}
+                            <li><a href="{{base}}activity">Activity</a></li>
+                            {{/if}}
+                            <li role="separator" class="divider"></li>
+                            {{/if}}
+                            {{#if user.is_superuser}}
+                            <li><a href="{{base}}settings">Settings</a></li>
+                            <li role="separator" class="divider"></li>
+                            {{/if}}
+                            <li><a href="{{base}}help">Help</a></li>
+                            {{#if user.uid}}
+                            <li>
+                                <a href="{{base}}../auth/logout?red={{path}}" title="Logout">Logout </a>
+                            </li>
+                            {{/if}}
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <div class="container" id="content">
+            {{#each noti}}
+            {{#if this.Error}}
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                Unable to create {{this.Error.name}}. {{this.Error.para}} is missing or invalid. (<a
+                    href="{{this.Error.help}}">more</a>)
+            </div>
+            {{/if}}
+            {{#if this.Info}}
+            <div class="alert alert-success alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <a href="{{this.Info.url}}/{{this.Info.id}}">{{this.Info.name}}</a> was created successfully.
+            </div>
+            {{/if}}
+            {{#if this.Deleted}}
+            <div class="alert alert-success alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                {{this.Deleted.name}} was deleted successfully.
+            </div>
+            {{/if}}
+            {{#if this.Unique}}
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                Unable to create {{this.Unique.name}}. {{this.Unique.name}} with this {{this.Unique.para}} already
+                exists. (<a href="{{this.Unique.help}}">more</a>)
+            </div>
+            {{/if}}
+            {{#if this.Permission}}
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                Unable to delete {{this.Unique.name}}. Operation requires admin privileges.)
+            </div>
+            {{/if}}
+            {{/each}}
+            {{> content }}
+        </div>
+        <footer>
+            <div class="container">
+                <p class="text-muted credit">Developed by <a href="https://github.com/mettke/ssh-key-authority">Marc
+                        Mettke</a> (v{{main.version}})</p>
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>

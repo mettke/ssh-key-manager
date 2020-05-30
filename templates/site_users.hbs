@@ -1,0 +1,85 @@
+{{#> par_list_view }}
+{{#*inline "uactive"}}active{{/inline}}
+{{#*inline "name_p"}}Users{{/inline}}
+{{#*inline "name"}}User{{/inline}}
+{{#*inline "name_l"}}user{{/inline}}
+
+{{#*inline "filter"}}
+<div class="col-sm-7">
+	<div class="form-group">
+		<label for="hostname-search">Uid (<a
+				href="https://www.postgresql.org/docs/8.3/functions-matching.html">like</a>)</label>
+		<input type="text" id="hostname-search" name="uid" class="form-control" value="{{param.uid}}" autofocus>
+	</div>
+	<div class="form-group">
+		<label for="ipaddress-search">Full Name (<a
+				href="https://www.postgresql.org/docs/8.3/functions-matching.html">like</a>)</label>
+		<input type="text" id="ipaddress-search" name="name" class="form-control" value="{{param.name}}">
+	</div>
+	<div class="form-group">
+		<label for="ipaddress-search">Email (<a
+				href="https://www.postgresql.org/docs/8.3/functions-matching.html">like</a>)</label>
+		<input type="text" id="ipaddress-search" name="email" class="form-control" value="{{param.email}}">
+	</div>
+</div>
+<div class="col-sm-3">
+	<h4>Type</h4>
+	<div class="checkbox"><label><input type="checkbox" name="superuser" value="s"
+				{{#if (contains param.superuser "s")}}checked{{/if}}>Superuser</label></div>
+	<div class="checkbox"><label><input type="checkbox" name="admin" value="a"
+				{{#if (contains param.admin "a")}}checked{{/if}}>Admin</label></div>
+	<div class="checkbox"><label><input type="checkbox" name="user" value="u"
+				{{#if (contains param.user "u")}}checked{{/if}}>User</label></div>
+</div>
+{{/inline}}
+
+{{#*inline "table_header"}}
+<th></th>
+<th>Username</th>
+<th>Full name</th>
+<th>Email</th>
+<th>Type</th>
+{{/inline}}
+
+{{#*inline "table_body"}}
+<tr>
+	<td><span class="glyphicon glyphicon-user" title="User"></span></td>
+	<td><a href="{{this.entity_id}}" class="user">{{this.uid}}</a></td>
+	<td>{{this.name}}</td>
+	<td>{{this.email}}</td>
+	<td>{{this.type_}}</td>
+</tr>
+{{/inline}}
+
+{{#*inline "form"}}
+<input type="hidden" name="uid" value="{{@root.param.uid}}">
+<input type="hidden" name="name" value="{{@root.param.name}}">
+<input type="hidden" name="email" value="{{@root.param.email}}">
+<input type="hidden" name="superuser" value="{{@root.param.superuser}}">
+<input type="hidden" name="admin" value="{{@root.param.admin}}">
+<input type="hidden" name="user" value="{{@root.param.user}}">
+{{/inline}}
+
+{{#*inline "add_form"}}
+<div class="form-group">
+	<label for="uid">Username</label>
+	<input type="text" id="uid" name="uid" class="form-control" required>
+</div>
+<div class="form-group">
+	<label for="name">Full Name</label>
+	<input type="text" id="name" name="name" class="form-control" required>
+</div>
+<div class="form-group">
+	<label for="email">Mail Address</label>
+	<input type="email" id="email" name="email" class="form-control" required>
+</div>
+<div class="form-group">
+  <label for="sel1">User Type:</label>
+  <select class="form-control" id="type">
+    <option selected>User</option>
+    <option>Admin</option>
+    <option>Superuser</option>
+  </select>
+</div>
+{{/inline}}
+{{/par_list_view}}

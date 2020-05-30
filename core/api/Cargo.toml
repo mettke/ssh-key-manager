@@ -1,0 +1,14 @@
+[package]
+name = "core_api"
+version = "0.1.0"
+authors = ["Marc Mettke <marc@itmettke.de>"]
+edition = "2018"
+description = "Core Library providing api routes"
+license-file = "../../LICENSE"
+repository = "https://github.com/mettke/ssh-key-authority"
+readme = "README.md"
+keywords = ["ssh", "key", "management", "api"]
+categories = ["api-bindings"]
+
+[dependencies]
+core_common = { path = "../common" }

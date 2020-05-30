@@ -1,0 +1,84 @@
+{{#> par_list_view }}
+{{#*inline "sactive"}}active{{/inline}}
+{{#*inline "name_p"}}Servers{{/inline}}
+{{#*inline "name"}}Server{{/inline}}
+{{#*inline "name_l"}}server{{/inline}}
+
+{{#*inline "filter"}}
+<div class="col-sm-4">
+	<div class="form-group">
+		<label for="hostname-search">Hostname (<a
+			href="https://www.postgresql.org/docs/8.3/functions-matching.html">like</a>)</label>
+		<input type="text" id="hostname-search" name="hostname" class="form-control" value="{{param.hostname}}"
+			autofocus>
+	</div>
+	<div class="form-group">
+		<label for="ipaddress-search">IP address</label>
+		<input type="text" id="ipaddress-search" name="ip_address" class="form-control" value="{{param.ip_address}}">
+	</div>
+</div>
+<div class="col-sm-3">
+	<h4>Key management</h4>
+	<div class="checkbox"><label><input type="checkbox" name="key_management" value="Keys" {{#if (contains param.key_management "Keys")}}checked{{/if}}>Managed by SSH Key Authority</label></div>
+	<div class="checkbox"><label><input type="checkbox" name="key_management" value="Other" {{#if (contains param.key_management "Other")}}checked{{/if}}>Managed by another system</label></div>
+	<div class="checkbox"><label><input type="checkbox" name="key_management" value="None" {{#if (contains param.key_management "None")}}checked{{/if}}>Unmanaged</label></div>
+</div>
+<div class="col-sm-3">
+	<h4>Sync status</h4>
+	<div class="checkbox"><label><input type="checkbox" name="sync_status" value="SyncSuccess" {{#if (contains param.sync_status "SyncSuccess")}}checked{{/if}}>Sync success</label></div>
+	<div class="checkbox"><label><input type="checkbox" name="sync_status" value="SyncWarning" {{#if (contains param.sync_status "SyncWarning")}}checked{{/if}}>Sync warning</label></div>
+	<div class="checkbox"><label><input type="checkbox" name="sync_status" value="SyncFailure" {{#if (contains param.sync_status "SyncFailure")}}checked{{/if}}>Sync failure</label></div>
+	<div class="checkbox"><label><input type="checkbox" name="sync_status" value="NotSyncedYet" {{#if (contains param.sync_status "NotSyncedYet")}}checked{{/if}}>Not synced yet</label></div>
+</div>
+{{/inline}}
+
+{{#*inline "table_header"}}
+<th>Name</th>
+<th>Hostname</th>
+<th>Config</th>
+<th>Status</th>
+{{/inline}}
+
+{{#*inline "table_body"}}
+<tr>
+	<td><a href="{{this.id}}" class="server">{{this.name}}</a></td>
+	<td><a href="{{this.id}}" class="server">{{this.hostname}}</a></td>
+	<td class="nowrap">{{transform_config this.key_management this.authorization}}</td>
+	<td class="nowrap {{transform_sync_label this.sync_status this.key_management}}">
+		{{transform_sync this.sync_status}}
+	</td>
+</tr>
+{{/inline}}
+
+{{#*inline "form"}}
+<input type="hidden" name="hostname" value="{{@root.param.hostname}}">
+<input type="hidden" name="ip_address" value="{{@root.param.ip_address}}">
+<input type="hidden" name="key_management" value="{{@root.param.key_management}}">
+<input type="hidden" name="sync_status" value="{{@root.param.sync_status}}">
+{{/inline}}
+
+{{#*inline "add_form"}}
+<div class="form-group">
+	<label for="hostname">Server hostname</label>
+	<input type="text" id="hostname" name="hostname" class="form-control" required>
+</div>
+<div class="form-group">
+	<label for="port">SSH port number</label>
+	<input type="number" id="port" name="port" class="form-control" value="22" required>
+</div>
+<div class="form-group">
+	<label for="server_admin">Administrators</label>
+	<input type="text" id="server_admins" name="admins" class="form-control hidden" required>
+	<input type="text" id="server_admin" name="admin" class="form-control"
+		placeholder="Type user/group name and press 'Enter' key" list="adminlist">
+</div>
+<div class="form-group">
+	<label for="server_managment">Key Managment</label>
+	<select name="key_management" class="browser-default custom-select form-control">
+		<option value="keys" selected>Managed by SSH Key Authority</option>
+		<option value="other">Managed by another system</option>
+		<option value="none">Unmanaged</option>
+	</select>
+</div>
+{{/inline}}
+{{/par_list_view}}
