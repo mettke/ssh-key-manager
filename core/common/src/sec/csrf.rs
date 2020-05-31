@@ -4,7 +4,6 @@ use crate::{
         header::{HeaderValue, SET_COOKIE},
         response,
     },
-    log,
     sec::Auth,
     web::{create_cookie, delete_cookie, AppError, Request, TemplateEngine},
 };

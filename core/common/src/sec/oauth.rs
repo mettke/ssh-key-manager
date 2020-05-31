@@ -377,6 +377,9 @@ impl OAuth2 {
     }
 
     /// Fetches a Token using the code given by the openid callback
+    ///
+    /// # Errors
+    /// Fails if the oauth client is unable to communicate with the provider
     #[inline]
     pub async fn get_token(
         &self,
@@ -391,6 +394,9 @@ impl OAuth2 {
     }
 
     /// Fetches a Token using a refresh token
+    /// 
+    /// # Errors
+    /// Fails if the oauth client is unable to communicate with the provider
     #[inline]
     pub async fn get_token_by_refresh_token(
         &self,

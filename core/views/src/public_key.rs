@@ -13,14 +13,14 @@ use std::borrow::Cow;
 #[derive(Debug)]
 pub struct PublicKeyListView<'a>(pub DbList<PublicKey<'a>>);
 
-impl PublicKeyListView<'_> {
+impl<'a> PublicKeyListView<'a> {
     /// Fetches all public keys visible to the given user
     ///
     /// # Errors
     /// Fails when database connection fails
     #[inline]
     #[allow(unused_lifetimes, single_use_lifetimes)]
-    pub async fn fetch<'a, A, D, T, R>(
+    pub async fn fetch<A, D, T, R>(
         req: &R,
         filter: &PublicKeyFilter<'_>,
     ) -> Result<PublicKeyListView<'a>, AppError<A, D, T, R>>
@@ -45,18 +45,18 @@ impl PublicKeyListView<'_> {
     /// Fails when database connection fails
     #[inline]
     #[allow(unused_lifetimes, single_use_lifetimes, clippy::needless_lifetimes)]
-    pub async fn create<'d, A, D, T, R>(
+    pub async fn create<'e, A, D, T, R>(
         req: &mut R,
         data: Option<Cow<'_, str>>,
-        uid: Option<&'d User<'_>>,
+        uid: Option<&'e User<'_>>,
         csrf: &CsrfToken,
-    ) -> Result<[Notification<'d>; 1], AppError<A, D, T, R>>
+    ) -> Result<[Notification<'e>; 1], AppError<A, D, T, R>>
     where
         A: Auth,
-        for<'a, 'b, 'c> D: Database
-            + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>
-            + FetchByUid<A, User<'a>, D>
-            + Create<A, PublicKey<'a>, D>,
+        for<'b, 'c, 'd> D: Database
+            + FetchAll<'b, A, PublicKey<'d>, PublicKeyFilter<'c>, D>
+            + FetchByUid<A, User<'d>, D>
+            + Create<A, PublicKey<'d>, D>,
         T: TemplateEngine,
         R: Request<A, D, T>,
     {
