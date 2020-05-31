@@ -394,7 +394,7 @@ impl OAuth2 {
     }
 
     /// Fetches a Token using a refresh token
-    /// 
+    ///
     /// # Errors
     /// Fails if the oauth client is unable to communicate with the provider
     #[inline]

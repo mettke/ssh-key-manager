@@ -1,6 +1,6 @@
 //! Core Library providing data structures
 
-#![warn(
+#![deny(
     absolute_paths_not_starting_with_crate,
     anonymous_parameters,
     // box_pointers,
@@ -30,7 +30,7 @@
     unused_results,
     variant_size_differences
 )]
-#![warn(
+#![deny(
     clippy::correctness,
     clippy::restriction,
     clippy::style,

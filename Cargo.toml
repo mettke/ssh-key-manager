@@ -1,11 +1,11 @@
 [package]
-name = "ssh-key-authority"
+name = "ssh-key-manager"
 version = "0.1.0"
 authors = ["Marc Mettke <marc@itmettke.de>"]
 edition = "2018"
 description = "Application for SSH Key Management via SSH"
 license-file = "LICENSE"
-repository = "https://github.com/mettke/ssh-key-authority"
+repository = "https://github.com/mettke/ssh-key-manager"
 readme = "README.md"
 keywords = ["ssh", "key", "sshkey", "management", "publickey"]
 categories = ["command-line-utilities"]

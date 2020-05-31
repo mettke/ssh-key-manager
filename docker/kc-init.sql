@@ -2576,8 +2576,8 @@ COPY public.redirect_uris (client_id, value) FROM stdin;
 c506d2fc-b7ca-43c2-8850-844800fd97ac	/realms/master/account/*
 df8928e5-088d-485f-b8d0-37e364492cb3	/admin/master/console/*
 c0b92108-6cf9-48e8-8492-ca9aeeee477c	http://localhost/auth/callback
-c0b92108-6cf9-48e8-8492-ca9aeeee477c	http://ska.local:8080/auth/callback
-c0b92108-6cf9-48e8-8492-ca9aeeee477c	http://ska.local/auth/callback
+c0b92108-6cf9-48e8-8492-ca9aeeee477c	http://skm.local:8080/auth/callback
+c0b92108-6cf9-48e8-8492-ca9aeeee477c	http://skm.local/auth/callback
 c0b92108-6cf9-48e8-8492-ca9aeeee477c	http://localhost:8080/auth/callback
 \.
 

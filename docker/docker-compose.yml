@@ -10,9 +10,9 @@ services:
       # Migration Test
       # - "./data-pg.sql:/docker-entrypoint-initdb.d/01-init.sql"
     environment:
-      POSTGRES_DB: ska
-      POSTGRES_USER: ska
-      POSTGRES_PASSWORD: ska
+      POSTGRES_DB: skm
+      POSTGRES_USER: skm
+      POSTGRES_PASSWORD: skm
   mariadb:
     image: mariadb
     restart: always
@@ -20,13 +20,11 @@ services:
       - 3306:3306
     volumes:
       - "./mariadb.patch.sql:/docker-entrypoint-initdb.d/00-patch.sql"
-      # # Migration Test
-      # - "./data.sql:/docker-entrypoint-initdb.d/01-init.sql"
     environment:
-      MYSQL_ROOT_PASSWORD: ska
-      MYSQL_DATABASE: ska
-      MYSQL_USER: ska
-      MYSQL_PASSWORD: ska
+      MYSQL_ROOT_PASSWORD: skm
+      MYSQL_DATABASE: skm
+      MYSQL_USER: skm
+      MYSQL_PASSWORD: skm
   mysql:
     image: mysql
     restart: always
@@ -34,13 +32,11 @@ services:
       - 3307:3306
     volumes:
       - "./mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro"
-      # Migration Test
-      # - "./data.sql:/docker-entrypoint-initdb.d/01-init.sql"
     environment:
-      MYSQL_ROOT_PASSWORD: ska
-      MYSQL_DATABASE: ska
-      MYSQL_USER: ska
-      MYSQL_PASSWORD: ska
+      MYSQL_ROOT_PASSWORD: skm
+      MYSQL_DATABASE: skm
+      MYSQL_USER: skm
+      MYSQL_PASSWORD: skm
 
   # Keycloak oauth2 testing server
   #
@@ -49,8 +45,8 @@ services:
   # Redirect Url: 
   #  - http://localhost/auth/callback, 
   #  - http://localhost:8080/auth/callback
-  #  - http://ska.local/auth/callback
-  #  - http://ska.local:8080/auth/callback
+  #  - http://skm.local/auth/callback
+  #  - http://skm.local:8080/auth/callback
   # Superuser:
   #  - Scope: test-superuser
   #  - User: superuser

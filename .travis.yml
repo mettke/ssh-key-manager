@@ -1,0 +1,44 @@
+dist: trusty
+language: rust
+rust:
+  - stable
+os: linux
+env: RUST_BACKTRACE=full
+
+before_script:
+  - cargo install cargo-patch
+  - sed -i '/jsonwebtoken/s/^/# /g' core/common/Cargo.toml
+  - cargo patch
+  - sed -i '/jsonwebtoken/s/^# //g' core/common/Cargo.toml
+  - cargo install cargo-audit
+  - rustup component add clippy
+
+script:
+  - cargo build
+  - cargo clippy
+  - cargo audit
+  
+before_deploy:
+  - cargo build --release 
+  - cp target/release/ssh-key-manager ssh-key-manager
+  - tar czf ssh-key-manager-$TRAVIS_TAG-linux.tar.gz ssh-key-manager templates
+
+deploy:
+  token:
+    secure: SKNoA16E4RYgkjrhapPnKiCDSQlN9+SGtOJ8ybdvIVXK+MqT8oQEj9liNr/N14qGYSxMU2KvqGNE6BIbB1u9wTS3D84zwFwRF+NhVwW62+2Yt92olWANq89aCSBwLz5QwSSSO+HrDsr+9yjKtASzVAnX7/ghEqA0Req07mi87lYv0qXTnOlVP0PXJm++KO+SmmslH93BicJ19UZSS7J/7IBFX0k0mTVmIR4bA1ny7jsz+mTnHg9QIPH5SM26MDhQuvK1V96DO6oTgpsLp0CatoQx5f9S/J5zgZKF0zel/97MicKBgBhJTAzljnD9CrehqJUQ+CGEoFVaiAnCDtVVvqxYLY6N3NEVXJ+8aaiXYvmppp5ISo/aGI3SnadaJCUBilKQidAHH79sm+2MZG4dn4iVtFwxoOqyjQ91bpGtptOkh3nZg5h3XrYC12nOaq4z4Cg39R+jnzZho7opYqrhM6FiMDfZTLMgaeGGfaRmA9coxv9BkUOICMlhfV9JAIvfAxGYAeellkWwz0S66AKEWt0cJ3x9quYfBeEIQcl6jIrzg88dmgc6U++ZsQ2zBvFLf5Mj1078ta/y3X5pBoTAkPAlyLzEI4AWo22TYvEJw89zi2ZsAbte3DrvZg4uhUUieB3x6ywOCii/VbgQ/nXFHUj4y/gAjIayEePTicvLKlw=
+  file_glob: true
+  file: ssh-key-manager-$TRAVIS_TAG-linux.tar.gz
+  on:
+    condition: $TRAVIS_RUST_VERSION = stable
+    tags: true
+  provider: releases
+  skip_cleanup: true
+
+cache: cargo
+before_cache:
+  # Travis can't cache files that are not readable by "others"
+  - chmod -R a+r $HOME/.cargo
+
+notifications:
+  email:
+    on_success: never

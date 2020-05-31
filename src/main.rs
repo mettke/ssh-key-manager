@@ -1,6 +1,6 @@
 //! A tool for managing user and server SSH access to any number of servers.
 
-#![warn(
+#![deny(
     absolute_paths_not_starting_with_crate,
     anonymous_parameters,
     deprecated_in_future,
@@ -27,7 +27,7 @@
     unused_results,
     variant_size_differences
 )]
-#![warn(
+#![deny(
     clippy::correctness,
     clippy::restriction,
     clippy::style,
@@ -87,6 +87,7 @@ async fn shutdown_signal() {
 }
 
 #[tokio::main]
+#[allow(clippy::print_stdout)]
 async fn main() {
     let args = get_arguments();
     if let Some(log_level) = args.log_level {
@@ -94,6 +95,10 @@ async fn main() {
             eprintln!("Unable to initialize Logger: {}", err);
             exit(1);
         }
+    }
+    if args.print_version {
+        println!("{}", env!("CARGO_PKG_VERSION"));
+        exit(0);
     }
     let database = {
         #[cfg(not(feature = "diesel_pg"))]

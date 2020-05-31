@@ -13,6 +13,7 @@ const ARGS_PORT_DEFAULT: &str = "8080";
 const ARGS_PORT_DEFAULT_U16: u16 = 8080;
 const ARGS_VERBOSE: &str = "verbose";
 const ARGS_SILENT: &str = "silent";
+const ARGS_VERSION: &str = "version";
 
 const ARGS_DATABASE_HOST: &str = "db-host";
 const ARGS_DATABASE_HOST_ENV: &str = "DB_HOST";
@@ -44,6 +45,8 @@ const ARGS_OAUTH_CLIENT_SUPERUSER_SCOPE_ENV: &str = "OAUTH_SUPERUSER_SCOPE";
 
 #[derive(Debug, Clone)]
 pub struct CliArguments {
+    pub print_version: bool,
+
     pub listen: String,
     pub port: u16,
     pub log_level: Option<log::Level>,
@@ -76,6 +79,7 @@ pub struct OAuth {
 #[allow(clippy::too_many_lines, clippy::cognitive_complexity)]
 pub fn get_arguments() -> CliArguments {
     let matches = get_cli_config();
+    let print_version = matches.is_present(ARGS_VERSION);
     let listen = matches
         .value_of(ARGS_LISTEN)
         .unwrap_or(ARGS_LISTEN_DEFAULT)
@@ -196,6 +200,8 @@ pub fn get_arguments() -> CliArguments {
     };
 
     CliArguments {
+        print_version,
+
         listen,
         port,
         log_level,
@@ -212,6 +218,12 @@ pub fn get_arguments() -> CliArguments {
 #[allow(clippy::too_many_lines)]
 fn get_cli_config<'a>() -> ArgMatches<'a> {
     app_from_crate!()
+        .arg(
+            Arg::with_name(ARGS_VERSION)
+                .long(ARGS_VERSION)
+                .help("Print the version of the program")
+                .takes_value(false),
+        )
         .arg(
             Arg::with_name(ARGS_LISTEN)
                 .short("l")
