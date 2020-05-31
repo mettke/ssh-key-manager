@@ -1,11 +1,11 @@
-use crate::routes::{index_method, not_found, route_at};
+use crate::routes::{index_method, not_found};
 use core_app::auth::{logout, oauth};
 use core_common::{
     database::{Create, Database, FetchByUid, Save},
     http::response::Response,
     objects::User,
     sec::{Auth, AuthMethod, PreAuth},
-    web::{AppError, Request, ResponseType, TemplateEngine},
+    web::{route_at, AppError, Request, ResponseType, TemplateEngine},
 };
 
 pub async fn index<A, D, T, R>(

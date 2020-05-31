@@ -1,12 +1,11 @@
-use crate::routes::route_at;
 use core_app::public_keys;
 use core_common::{
-    database::{Create, Database, FetchAll, FetchByUid, Save},
+    database::{Create, Database, Delete, FetchAll, FetchById, FetchByUid, Save},
     http::response::Response,
-    objects::{PublicKey, PublicKeyFilter, User},
+    objects::{Entity, PublicKey, PublicKeyFilter, User},
     sec::{Auth, PreAuth},
     web::{
-        not_found, redirect, serve_login, AppError, Request, ResponseType,
+        not_found, redirect, route_at, serve_login, AppError, Request, ResponseType,
         TemplateEngine,
     },
 };
@@ -21,8 +20,11 @@ where
     for<'a, 'b, 'c> D: Database
         + FetchByUid<PreAuth, User<'a>, D>
         + FetchByUid<A, User<'a>, D>
+        + FetchById<'b, A, PublicKey<'a>, D>
+        + FetchById<'b, A, Entity<'a>, D>
         + Create<PreAuth, User<'a>, D>
         + Create<A, PublicKey<'a>, D>
+        + Delete<A, PublicKey<'a>, D>
         + Save<PreAuth, User<'a>, D>
         + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>,
     T: TemplateEngine,
@@ -37,7 +39,7 @@ where
     } else if req.authenticate(&mut res).await {
         match route_at(path, 2) {
             // Some("") => index_method(req),
-            Some("publickeys") => public_keys::index(req, res).await,
+            Some("publickeys") => public_keys::index(req, res, path).await,
             _ => not_found(),
         }
     } else {

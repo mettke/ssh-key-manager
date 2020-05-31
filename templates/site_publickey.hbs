@@ -5,47 +5,51 @@ active
 {{#*inline "content"}}
 <h1>
 	Public key '{{sub.public_key.comment}}' for
-	{{#if (eq sub.owner.entity_type "User")}}
+	{{#if (eq sub.owner.type_ "User")}}
 	<a href="../../users/{{sub.owner.entity_id}}" class="user">{{sub.owner.name}}</a>
 	{{/if}}
-	{{#if (eq sub.owner.entity_type "ServerAccount")}}
-	<a href="../../servers/unimplemented/accounts/{{this.owner.entity_id}}"
-		class="serveraccount">{{this.owner.name}}@unimplemented</a>
+	{{#if (eq sub.owner.type_ "ServerAccount")}}
+	<a href="../../servers/{{sub.owner.server_id}}/accounts/{{this.owner.entity_id}}"
+		class="serveraccount">{{this.owner.name}}@{{this.owner.server_name}}</a>
 	{{/if}}
 </h1>
-<ul class="nav nav-tabs">
-	<li><a href="#info" data-toggle="tab">Information</a></li>
-</ul>
 
-<div class="tab-content">
-	<div class="tab-pane {{#if (not (or user.is_admin sub.is_owner))}}active{{/if}}" id="info">
-		<h2 class="sr-only">Information</h2>
-		<dl>
-			<dt>Key data</dt>
-			<dd>
-				<pre>{{sub.public_key.type_}} {{sub.public_key.keydata}} {{sub.public_key.comment}}</pre>
-			</dd>
-			<dt>Key size</dt>
-			<dd>{{sub.public_key.keysize}}</dd>
-			<dt>Fingerprint (MD5)</dt>
-			<dd>{{sub.public_key.fingerprint_md5}}</dd>
-			<dt>Randomart (MD5)</dt>
-			<dd>
-				<pre class="ascii-art">{{sub.public_key.randomart_md5}}</pre>
-			</dd>
-			<dt>Fingerprint (SHA256)</dt>
-			<dd>{{sub.public_key.fingerprint_sha256}}</dd>
-			<dt>Randomart (SHA256)</dt>
-			<dd>
-				<pre class="ascii-art">{{sub.public_key.randomart_sha256}}</pre>
-			</dd>
-			<dt>Upload Date</dt>
-			<dd>{{sub.public_key.upload_date}}</dd>
-			<dt>Expiration Date</dt>
-			<dd>
-			</dd>
-		</dl>
-	</div>
-</div>
+<h2 class="sr-only">Information</h2>
+<dl>
+	<dt>Key data</dt>
+	<dd>
+		<pre>{{sub.public_key.type_}} {{sub.public_key.keydata}} {{sub.public_key.comment}}</pre>
+	</dd>
+	<dt>Key size</dt>
+	<dd>{{sub.public_key.keysize}}</dd>
+	<dt>Fingerprint (MD5)</dt>
+	<dd>{{sub.public_key.fingerprint_md5}}</dd>
+	<dt>Randomart (MD5)</dt>
+	<dd>
+		<pre class="ascii-art">{{sub.public_key.randomart_md5}}</pre>
+	</dd>
+	<dt>Fingerprint (SHA256)</dt>
+	<dd>{{sub.public_key.fingerprint_sha256}}</dd>
+	<dt>Randomart (SHA256)</dt>
+	<dd>
+		<pre class="ascii-art">{{sub.public_key.randomart_sha256}}</pre>
+	</dd>
+	<dt>Upload Date</dt>
+	<dd>{{sub.public_key.upload_date}}</dd>
+	<dt>Expiration Date</dt>
+	<dd>
+	</dd>
+	{{#if (or user.is_admin sub.is_owner)}}
+	<dt>Delete</dt>
+	<dd>
+		<form method="post" action="#">
+			<input type="hidden" id="csrf" name="csrf" value="{{csrf}}">
+			<div class="btn-group" role="group">
+				<button type="submit" name="delete" value="1" class="btn btn-primary">Delete</button>
+			</div>
+		</form>
+	</dd>
+	{{/if}}
+</dl>
 {{/inline}}
 {{/par_base}}

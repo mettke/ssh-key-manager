@@ -153,3 +153,10 @@ where
     let param = uri.query().map(str::as_bytes).map(form_urlencoded::parse);
     ParameterIter(param)
 }
+
+/// Extracts the path at the given index
+#[must_use]
+#[inline]
+pub fn route_at(path: &[String], i: usize) -> Option<&str> {
+    path.get(i).map(|s| s.as_ref())
+}

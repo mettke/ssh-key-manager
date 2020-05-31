@@ -12,7 +12,7 @@ use diesel::{
     r2d2::{ConnectionManager, NopErrorHandler, Pool, PooledConnection},
     result::DatabaseErrorKind,
     select,
-    sql_types::Binary,
+    sql_types::{Binary, Nullable, Text},
     Connection, ExpressionMethods, QueryDsl, RunQueryDsl,
 };
 use std::{
@@ -23,6 +23,11 @@ use std::{
     fmt,
     time::Duration,
 };
+
+sql_function! {
+    #[sql_name = "coalesce"]
+    fn coalesce4(a: Nullable<Text>, b: Nullable<Text>, c: Nullable<Text>, d: Nullable<Text>) -> Nullable<Text>
+}
 
 no_arg_sql_function!(GEN_UUID, Binary, "Represents the GEN_UUID() function");
 

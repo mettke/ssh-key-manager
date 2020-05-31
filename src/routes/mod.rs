@@ -3,13 +3,13 @@ mod auth;
 
 use core_app::rstatic;
 use core_common::{
-    database::{Create, Database, FetchAll, FetchByUid, Save},
+    database::{Create, Database, Delete, FetchAll, FetchById, FetchByUid, Save},
     http::{method::Method, response::Response, status::StatusCode},
-    objects::{PublicKey, PublicKeyFilter, User},
+    objects::{Entity, PublicKey, PublicKeyFilter, User},
     sec::{Auth, PreAuth},
     web::{
-        invalid_method, not_found, redirect_home, AppError, Request, ResponseType,
-        TemplateEngine,
+        invalid_method, not_found, redirect_home, route_at, AppError, Request,
+        ResponseType, TemplateEngine,
     },
 };
 use std::convert::Infallible;
@@ -24,8 +24,11 @@ where
     for<'a, 'b, 'c> D: Database
         + FetchByUid<PreAuth, User<'a>, D>
         + FetchByUid<A, User<'a>, D>
+        + FetchById<'b, A, PublicKey<'a>, D>
+        + FetchById<'b, A, Entity<'a>, D>
         + Create<PreAuth, User<'a>, D>
         + Create<A, PublicKey<'a>, D>
+        + Delete<A, PublicKey<'a>, D>
         + Save<PreAuth, User<'a>, D>
         + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>,
     T: TemplateEngine,
@@ -75,8 +78,11 @@ where
     for<'a, 'b, 'c> D: Database
         + FetchByUid<PreAuth, User<'a>, D>
         + FetchByUid<A, User<'a>, D>
+        + FetchById<'b, A, PublicKey<'a>, D>
+        + FetchById<'b, A, Entity<'a>, D>
         + Create<PreAuth, User<'a>, D>
         + Create<A, PublicKey<'a>, D>
+        + Delete<A, PublicKey<'a>, D>
         + Save<PreAuth, User<'a>, D>
         + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>,
     T: TemplateEngine,
@@ -91,10 +97,6 @@ where
         Some("static") => rstatic::index(req, &path).await,
         _ => not_found(),
     }
-}
-
-pub fn route_at(path: &[String], i: usize) -> Option<&str> {
-    path.get(i).map(|s| s.as_ref())
 }
 
 pub fn index_method<A, D, T, R>(

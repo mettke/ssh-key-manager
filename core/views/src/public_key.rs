@@ -1,10 +1,12 @@
 use core_common::{
-    database::{Create, Database, DatabaseError, DbList, FetchAll, FetchByUid},
+    database::{
+        Create, Database, DatabaseError, DbList, FetchAll, FetchById, FetchByUid,
+    },
     log,
-    objects::{PublicKey, PublicKeyConversionError, PublicKeyFilter, User},
+    objects::{Entity, PublicKey, PublicKeyConversionError, PublicKeyFilter, User},
     sec::{Auth, CsrfToken},
     serde::Serialize,
-    types::{EntityTypes, Id},
+    types::Id,
     web::{AppError, Notification, Request, TemplateEngine},
 };
 use std::borrow::Cow;
@@ -95,7 +97,7 @@ impl<'a> PublicKeyListView<'a> {
                 }]),
                 Ok(()) => Ok([Notification::Info {
                     name: "Public Key",
-                    url: "publickeys",
+                    url: ".",
                     id: key.id,
                 }]),
             },
@@ -113,24 +115,65 @@ impl<'a> PublicKeyListView<'a> {
     }
 }
 
-/// The owner associated with the `PublicKey`
-#[derive(Debug, Clone, Hash, Serialize)]
-pub struct PublicKeyEntityView {
-    /// The id of the entity
-    pub entity_id: Id,
-    /// The type of the entity
-    pub entity_type: EntityTypes,
-    /// The name of the entity
-    pub name: Option<String>,
-}
-
 /// A public key ready to be presented
 #[derive(Debug, Clone, Hash, Serialize)]
 pub struct PublicKeyView<'a> {
     /// The public key to show to the user
     pub public_key: PublicKey<'a>,
     /// The entity which owns the public key
-    pub owner: PublicKeyEntityView,
+    pub owner: Entity<'a>,
     /// Whether the current user is the owner
     pub is_owner: bool,
+}
+
+#[allow(clippy::unimplemented)]
+impl PublicKeyView<'_> {
+    /// Fetches all public keys visible to the given user
+    ///
+    /// # Errors
+    /// Fails when database connection fails
+    #[inline]
+    #[allow(unused_lifetimes, single_use_lifetimes)]
+    pub async fn fetch<'a, A, D, T, R>(
+        req: &R,
+        key: &str,
+    ) -> Result<Option<PublicKeyView<'a>>, AppError<A, D, T, R>>
+    where
+        A: Auth,
+        for<'b> D: Database
+            + FetchById<'b, A, PublicKey<'a>, D>
+            + FetchById<'b, A, Entity<'a>, D>,
+        T: TemplateEngine,
+        R: Request<A, D, T>,
+    {
+        let auth = req.get_auth();
+        let db = req.get_database();
+
+        let id = match Id::from_string(key) {
+            Err(_) => {
+                return Ok(None);
+            }
+            Ok(id) => id,
+        };
+
+        let public_key: Option<PublicKey<'_>> = db.fetch(&id, auth)?;
+        if let Some(public_key) = public_key {
+            let owner: Option<Entity<'_>> = db.fetch(&public_key.entity_id, auth)?;
+            let owner = owner.unwrap_or_else(|| Entity {
+                entity_id: public_key.entity_id.clone(),
+                name: None,
+                server_id: None,
+                server_name: None,
+                type_: None,
+            });
+            let is_owner = *owner.entity_id == *auth.get_id();
+            Ok(Some(PublicKeyView {
+                public_key,
+                owner,
+                is_owner,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
 }

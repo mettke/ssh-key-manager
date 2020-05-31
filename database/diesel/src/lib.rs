@@ -10,7 +10,7 @@
     indirect_structural_match,
     keyword_idents,
     macro_use_extern_crate,
-    meta_variable_misuse,
+    // meta_variable_misuse,
     missing_copy_implementations,
     missing_debug_implementations,
     missing_docs,
@@ -62,6 +62,7 @@ mod common_types;
 mod database;
 mod db_traits;
 mod db_wrapper;
+mod entity;
 mod error;
 mod event;
 mod group;
