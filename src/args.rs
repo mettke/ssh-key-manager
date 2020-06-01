@@ -2,7 +2,7 @@ use clap::{
     app_from_crate, crate_authors, crate_description, crate_name, crate_version,
     Arg, ArgMatches,
 };
-use std::process::exit;
+use std::{path::PathBuf, process::exit};
 
 const ARGS_LISTEN: &str = "listen";
 const ARGS_LISTEN_ENV: &str = "LISTEN";
@@ -43,6 +43,11 @@ const ARGS_OAUTH_CLIENT_ADMIN_SCOPE_ENV: &str = "OAUTH_ADMIN_SCOPE";
 const ARGS_OAUTH_CLIENT_SUPERUSER_SCOPE: &str = "oauth-superuser-scope";
 const ARGS_OAUTH_CLIENT_SUPERUSER_SCOPE_ENV: &str = "OAUTH_SUPERUSER_SCOPE";
 
+const ARGS_TLS_CERT: &str = "tls-cert";
+const ARGS_TLS_CERT_ENV: &str = "TLS_CERT";
+const ARGS_TLS_KEY: &str = "tls-key";
+const ARGS_TLS_KEY_ENV: &str = "TLS_KEY";
+
 #[derive(Debug, Clone)]
 pub struct CliArguments {
     pub print_version: bool,
@@ -57,6 +62,8 @@ pub struct CliArguments {
     pub db_name: String,
     pub db_user: String,
     pub db_pass: String,
+
+    pub tls: Option<(PathBuf, PathBuf)>,
 }
 
 #[derive(Debug, Clone)]
@@ -198,6 +205,13 @@ pub fn get_arguments() -> CliArguments {
             exit(1);
         }
     };
+    let tls = match (
+        matches.value_of(ARGS_TLS_CERT),
+        matches.value_of(ARGS_TLS_KEY),
+    ) {
+        (Some(cert), Some(key)) => Some((PathBuf::from(cert), PathBuf::from(key))),
+        _ => None,
+    };
 
     CliArguments {
         print_version,
@@ -212,6 +226,8 @@ pub fn get_arguments() -> CliArguments {
         db_name,
         db_user,
         db_pass,
+
+        tls,
     }
 }
 
@@ -370,6 +386,22 @@ fn get_cli_config<'a>() -> ArgMatches<'a> {
                 .help("OAuth Superuser Scope")
                 .takes_value(true)
                 .required_if(ARGS_AUTH_TYPE, "oauth"),
+        )
+        .arg(
+            Arg::with_name(ARGS_TLS_CERT)
+                .long(ARGS_TLS_CERT)
+                .env(ARGS_TLS_CERT_ENV)
+                .value_name("cert_path")
+                .help("Path to certificate chain in pem format")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name(ARGS_TLS_KEY)
+                .long(ARGS_TLS_KEY)
+                .env(ARGS_TLS_KEY_ENV)
+                .value_name("key_path")
+                .help("Path to private key in pem format")
+                .takes_value(true),
         )
         .get_matches()
 }

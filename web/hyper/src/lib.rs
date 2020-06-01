@@ -55,4 +55,7 @@
 mod hyper_request;
 mod hyper_server;
 
-pub use crate::{hyper_request::HyperRequest, hyper_server::HyperServer};
+pub use crate::{
+    hyper_request::HyperRequest,
+    hyper_server::{HyperError, HyperServer},
+};

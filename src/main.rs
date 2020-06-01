@@ -218,7 +218,13 @@ async fn build_server<A, D, T>(
     };
     log::info!("Starting server on {}:{}", args.listen, args.port);
     if let Err(err) = server
-        .start_server(&args.listen, args.port, shutdown_signal(), routes::handler)
+        .start_server(
+            &args.listen,
+            args.port,
+            shutdown_signal(),
+            routes::handler,
+            args.tls.as_ref().map(|(c, k)| (c.as_ref(), k.as_ref())),
+        )
         .await
     {
         log::error!("Unable to start server: {}", err);

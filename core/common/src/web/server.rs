@@ -5,7 +5,9 @@ use crate::{
     sec::Auth,
     web::{Request, ResponseType, TemplateEngine},
 };
-use std::{convert::Infallible, error, fmt, future::Future, net::AddrParseError};
+use std::{
+    convert::Infallible, error, fmt, future::Future, net::AddrParseError, path::Path,
+};
 
 /// Database encountered an Error
 #[derive(Debug)]
@@ -95,6 +97,7 @@ pub trait Server<
         port: u16,
         signal: S,
         handler: H,
+        tls_cfg: Option<(&Path, &Path)>,
     ) -> Result<(), ServerError<A, D, T, R, Self>>
     where
         S: Send + Future<Output = ()>,

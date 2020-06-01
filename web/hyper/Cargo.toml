@@ -12,5 +12,8 @@ categories = ["web-programming"]
 
 [dependencies]
 core_common = { path = "../../core/common" }
+futures = "0.3"
 hyper = "0.13"
+rustls = "0.17"
+tokio-rustls = "0.13"
 tokio-util = { version = "0.3", features = ["codec"] }

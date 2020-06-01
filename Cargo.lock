@@ -2165,7 +2165,10 @@ name = "web_hyper"
 version = "0.1.0"
 dependencies = [
  "core_common 0.1.0",
+ "futures 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.13.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustls 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio-rustls 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-util 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
