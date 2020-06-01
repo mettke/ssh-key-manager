@@ -17,11 +17,13 @@ before_script:
   - sed -i '/rustls/s/^# //g' web/hyper/Cargo.toml
   - sed -i '/tokio-rustls/s/^# //g' web/hyper/Cargo.toml
   - cargo install cargo-audit
+  - cargo install cargo-tree
   - rustup component add clippy
 
 script:
   - cargo build
   - cargo clippy
+  - cargo tree
   - cargo audit
   
 before_deploy:
