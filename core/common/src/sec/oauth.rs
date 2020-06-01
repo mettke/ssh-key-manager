@@ -1,7 +1,7 @@
 use crate::{
     database::{Create, Database, FetchByUid, Save},
     objects,
-    sec::{Auth, PreAuth},
+    sec::{async_http_client, Auth, PreAuth},
     types::UserTypes,
     url,
     web::{create_cookie, delete_cookie, AppError, Request, TemplateEngine},
@@ -14,7 +14,6 @@ use openidconnect::{
         CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm,
         CoreProviderMetadata, CoreTokenType,
     },
-    reqwest::async_http_client,
     AccessToken, AsyncCodeTokenRequest, AsyncRefreshTokenRequest, AuthorizationCode,
     ClientId, ClientSecret, CsrfToken, EmptyAdditionalClaims, EmptyExtraTokenFields,
     ExtraTokenFields, IdToken, IdTokenClaims, IdTokenFields, IssuerUrl, Nonce,
@@ -68,18 +67,12 @@ pub enum OAuthError {
     /// Unable to parse url
     Url(url::ParseError),
     /// Unable to fetch Metadata
-    Discover(
-        Compat<
-            openidconnect::DiscoveryError<
-                openidconnect::reqwest::Error<reqwest::Error>,
-            >,
-        >,
-    ),
+    Discover(Compat<openidconnect::DiscoveryError<reqwest::Error>>),
     /// Unable to get token for code
     RequestToken(
         Compat<
             openidconnect::RequestTokenError<
-                openidconnect::reqwest::Error<reqwest::Error>,
+                reqwest::Error,
                 openidconnect::StandardErrorResponse<
                     openidconnect::BasicErrorResponseType,
                 >,
@@ -89,13 +82,7 @@ pub enum OAuthError {
     /// Endpoint is missing user info
     NoUserEndpoint(Compat<openidconnect::NoUserInfoEndpoint>),
     /// Endpoint is missing user info
-    UserInfo(
-        Compat<
-            openidconnect::UserInfoError<
-                openidconnect::reqwest::Error<reqwest::Error>,
-            >,
-        >,
-    ),
+    UserInfo(Compat<openidconnect::UserInfoError<reqwest::Error>>),
     /// Token verification failed
     ClaimVerification(Compat<openidconnect::ClaimsVerificationError>),
     /// Token claim extraction failed

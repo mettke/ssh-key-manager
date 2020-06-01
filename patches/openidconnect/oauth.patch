@@ -5,7 +5,7 @@
  
  [features]
 -default = ["reqwest-09"]
-+default = ["reqwest-010", "futures-03"]
++default = ["futures-03"]
  curl = ["oauth2/curl"]
  futures-01 = ["oauth2/futures-01", "futures-0-1"]
  futures-03 = ["oauth2/futures-03", "futures-0-3"]
