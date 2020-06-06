@@ -47,6 +47,10 @@ services:
   #  - http://localhost:8080/auth/callback
   #  - http://skm.local/auth/callback
   #  - http://skm.local:8080/auth/callback
+  #  - https://localhost/auth/callback, 
+  #  - https://localhost:8080/auth/callback
+  #  - https://skm.local/auth/callback
+  #  - https://skm.local:8080/auth/callback
   # Superuser:
   #  - Scope: test-superuser
   #  - User: superuser

@@ -178,7 +178,10 @@ async fn build_server<A, D, T>(
             oauth.client_id.clone(),
             Some(oauth.client_secret.clone()),
             oauth.metadata_url.clone(),
-            "http://localhost:8080/auth/callback",
+            &format!(
+                "http{}://localhost:8080/auth/callback",
+                args.tls.as_ref().map_or("", |_| "s")
+            ),
             oauth.user_scope.clone(),
             oauth.admin_scope.clone(),
             oauth.superuser_scope.clone(),
