@@ -1,0 +1,11 @@
+--- Cargo.toml	2020-06-04 09:20:51.594168999 +0200
++++ Cargo.toml	2020-06-04 09:22:04.211666158 +0200
+@@ -15,7 +15,7 @@
+ maintenance = { status = "actively-developed" }
+ 
+ [features]
+-default = ["reqwest-09"]
++default = ["reqwest-0-10", "http-0-2"]
+ futures-01 = ["futures-0-1"]
+ futures-03 = ["futures-0-3", "async-trait"]
+ reqwest-09 = ["reqwest-0-9"]

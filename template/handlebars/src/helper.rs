@@ -2,7 +2,8 @@
 use core_common::serde_json::Value;
 use handlebars::{handlebars_helper, HelperDef};
 
-pub(crate) fn get_helpers() -> Vec<(&'static str, Box<dyn HelperDef>)> {
+pub(crate) fn get_helpers() -> Vec<(&'static str, Box<dyn HelperDef + Send + Sync>)>
+{
     vec![
         ("log", Box::new(log)),
         ("add", Box::new(add)),

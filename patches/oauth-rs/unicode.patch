@@ -1,0 +1,11 @@
+--- Cargo.toml	2020-06-04 09:15:28.398731507 +0200
++++ Cargo.toml	2020-06-04 09:15:57.306067548 +0200
+@@ -38,7 +38,7 @@
+ serde_json = "1.0"
+ sha2 = "0.8"
+ # To support rustc < 1.36
+-unicode-normalization = "=0.1.9"
++unicode-normalization = "0.1"
+ url = "2.1"
+ 
+ [dev-dependencies]

@@ -1,0 +1,9 @@
+--- src/lib.rs	2020-06-04 09:17:51.191608973 +0200
++++ src/lib.rs	2020-06-04 09:17:48.398228288 +0200
+@@ -1,4 +1,6 @@
+ #![warn(missing_docs)]
++#![allow(clippy::all)]
++#![allow(warnings)]
+ //!
+ //! An extensible, strongly-typed implementation of OAuth2
+ //! ([RFC 6749](https://tools.ietf.org/html/rfc6749)).

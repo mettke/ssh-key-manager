@@ -54,8 +54,14 @@ members = [
     "web/hyper",
 ]
 
+[patch.'https://github.com/ramosbugs/oauth2-rs.git']
+oauth2 = { path = './target/patch/dfb1ff8' }
+
 [patch.'https://github.com/ramosbugs/openidconnect-rs.git']
-openidconnect = { path = './target/patch/f625020' }
+openidconnect = { path = './target/patch/0ac753f' }
+
+[patch.'https://github.com/heartsucker/rust-csrf.git']
+csrf = { path = './target/patch/7b77f87' }
 
 [patch.crates-io]
 clap = { path = './target/patch/clap-2.33.1' }

@@ -1,0 +1,42 @@
+--- Cargo.toml	2020-06-06 10:42:26.634436798 +0200
++++ Cargo.toml	2020-06-06 10:42:05.200852230 +0200
+@@ -28,5 +28,5 @@
+ data-encoding = "2.0.0"
+ log = "0.3"
+ rust-crypto = "0.2"
+-rand = "0.3"
++rand_core = "0.5"
+ typemap = { version = "0.3", optional = true }
+--- src/lib.rs	2020-06-06 10:58:39.204048150 +0200
++++ src/lib.rs	2020-06-06 10:58:43.277416112 +0200
+@@ -58,7 +58,7 @@
+ extern crate data_encoding;
+ #[macro_use]
+ extern crate log;
+-extern crate rand;
++extern crate rand_core;
+ #[cfg(feature = "iron")]
+ extern crate typemap;
+--- src/core.rs	2020-06-06 11:00:49.761870605 +0200
++++ src/core.rs	2020-06-06 11:00:44.798491735 +0200
+@@ -15,7 +15,7 @@
+ use crypto::mac::{Mac, MacResult};
+ use crypto::sha2::Sha256;
+ use data_encoding::{BASE64, BASE64URL};
+-use rand::{Rng, OsRng};
++use rand_core::{RngCore, OsRng};
+ #[cfg(feature = "iron")]
+ use typemap;
+ 
+@@ -208,9 +208,9 @@
+         // TODO We had to get rid of `ring` because of `gcc` conflicts with `rust-crypto`, and
+         // `ring`'s RNG didn't require mutability. Now create a new one per call which is not a
+         // great idea.
+-        OsRng::new()
+-            .map_err(|_| CsrfError::InternalError)?
+-            .fill_bytes(buf);
++        OsRng.fill_bytes(buf);
++        // keep
++        // lines
+         Ok(())
+     }
