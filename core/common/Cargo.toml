@@ -22,8 +22,8 @@ http = "0.2"
 http_01 = { version = "0.1", package = "http" }
 jsonwebtoken = "7.1"
 log = "0.4"
-oauth2 = { git = 'https://github.com/ramosbugs/oauth2-rs.git', version = "3.0.0-alpha.10" }
-openidconnect = { git = 'https://github.com/ramosbugs/openidconnect-rs.git', version = "1.0.0-alpha.14" }
+oauth2 = { git = 'https://github.com/ramosbugs/oauth2-rs.git', version = "3.0.0-alpha.11" }
+openidconnect = { git = 'https://github.com/ramosbugs/openidconnect-rs.git', version = "1.0.0-alpha.15" }
 openssh-keys = "0.4"
 reqwest = { version = "0.10", features = ["rustls-tls"], default-features = false }
 serde = { version = "1.0", features = ["derive"] }
@@ -33,7 +33,7 @@ url = "2.1"
 uuid = "0.8"
 
 [package.metadata.patch.oauth2]
-version = "3.0.0-alpha.10"
+version = "3.0.0-alpha.11"
 patches = [
     "patches/oauth-rs/default.patch",
     "patches/oauth-rs/unicode.patch",
@@ -43,9 +43,7 @@ patches = [
 [package.metadata.patch.openidconnect]
 patches = [
     "patches/openidconnect/error.patch",
-    "patches/openidconnect/ring.patch",
     "patches/openidconnect/oauth.patch",
-    "patches/openidconnect/untrusted.patch",
     "patches/openidconnect/warn.patch",
 ]
 

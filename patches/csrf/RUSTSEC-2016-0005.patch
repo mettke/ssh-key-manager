@@ -4,13 +4,13 @@
  iron = [ "typemap" ]
  
  [dependencies]
-+aead = "0.2"
-+aes-gcm = "0.5"
++aead = "0.3"
++aes-gcm = "0.6"
  byteorder = "1"
-+chacha20poly1305 = "0.4"
++chacha20poly1305 = "0.5"
  chrono = "0.4"
  data-encoding = "2.0.0"
-+generic-array = "0.12"
++generic-array = "0.14"
 +hmac = "0.7"
  log = "0.3"
 -rust-crypto = "0.2"
@@ -124,7 +124,7 @@
 -        AesGcm::new(KeySize::KeySize256, &self.aead_key, nonce, &[])
 +    fn aead(&self) -> Aes256Gcm {
 +        let key = GenericArray::clone_from_slice(&self.aead_key);
-+        Aes256Gcm::new(key)
++        Aes256Gcm::new(&key)
      }
  }
  
@@ -220,7 +220,7 @@
 -        ChaCha20Poly1305::new(&self.aead_key, nonce, &[])
 +    fn aead(&self) -> ChaCha20Poly1305 {
 +        let key = GenericArray::clone_from_slice(&self.aead_key);
-+        ChaCha20Poly1305::new(key)
++        ChaCha20Poly1305::new(&key)
      }
  }
  

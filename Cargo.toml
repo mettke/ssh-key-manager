@@ -55,10 +55,10 @@ members = [
 ]
 
 [patch.'https://github.com/ramosbugs/oauth2-rs.git']
-oauth2 = { path = './target/patch/dfb1ff8' }
+oauth2 = { path = './target/patch/540a580' }
 
 [patch.'https://github.com/ramosbugs/openidconnect-rs.git']
-openidconnect = { path = './target/patch/0ac753f' }
+openidconnect = { path = './target/patch/f9ca9b3' }
 
 [patch.'https://github.com/heartsucker/rust-csrf.git']
 csrf = { path = './target/patch/7b77f87' }
