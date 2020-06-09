@@ -5,14 +5,17 @@ use core_app::rstatic;
 use core_common::{
     database::{Create, Database, Delete, FetchAll, FetchById, FetchByUid, Save},
     http::{method::Method, response::Response, status::StatusCode},
-    objects::{Entity, PublicKey, PublicKeyFilter, User},
+    objects::{
+        Entity, Group, GroupFilter, GroupMember, PublicKey, PublicKeyFilter, User,
+    },
     sec::{Auth, PreAuth},
+    types::Id,
     web::{
         invalid_method, not_found, redirect_home, route_at, AppError, Request,
         ResponseType, TemplateEngine,
     },
 };
-use std::convert::Infallible;
+use std::{borrow::Cow, convert::Infallible};
 use time::OffsetDateTime;
 
 #[allow(single_use_lifetimes)]
@@ -26,11 +29,17 @@ where
         + FetchByUid<A, User<'a>, D>
         + FetchById<'b, A, PublicKey<'a>, D>
         + FetchById<'b, A, Entity<'a>, D>
+        + FetchById<'b, A, Group<'a>, D>
         + Create<PreAuth, User<'a>, D>
         + Create<A, PublicKey<'a>, D>
+        + Create<A, Group<'a>, D>
+        + Create<A, GroupMember<'a, Cow<'a, Id>>, D>
         + Delete<A, PublicKey<'a>, D>
+        + Delete<A, Group<'a>, D>
         + Save<PreAuth, User<'a>, D>
-        + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>,
+        + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>
+        + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>
+        + FetchAll<'b, A, GroupMember<'a, Entity<'a>>, Id, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {
@@ -80,11 +89,17 @@ where
         + FetchByUid<A, User<'a>, D>
         + FetchById<'b, A, PublicKey<'a>, D>
         + FetchById<'b, A, Entity<'a>, D>
+        + FetchById<'b, A, Group<'a>, D>
         + Create<PreAuth, User<'a>, D>
         + Create<A, PublicKey<'a>, D>
+        + Create<A, Group<'a>, D>
+        + Create<A, GroupMember<'a, Cow<'a, Id>>, D>
         + Delete<A, PublicKey<'a>, D>
+        + Delete<A, Group<'a>, D>
         + Save<PreAuth, User<'a>, D>
-        + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>,
+        + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>
+        + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>
+        + FetchAll<'b, A, GroupMember<'a, Entity<'a>>, Id, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {

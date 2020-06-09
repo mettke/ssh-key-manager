@@ -42,7 +42,7 @@ active
 	{{#if (or user.is_admin sub.is_owner)}}
 	<dt>Delete</dt>
 	<dd>
-		<form method="post" action="#">
+		<form method="post" action="">
 			<input type="hidden" id="csrf" name="csrf" value="{{csrf}}">
 			<div class="btn-group" role="group">
 				<button type="submit" name="delete" value="1" class="btn btn-primary">Delete</button>

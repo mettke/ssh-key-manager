@@ -222,7 +222,7 @@ active
 <p>{{this.name}} is not an administrator for any servers.</p>
 {{else}}
 <p>{{this.name}} is an administrator for the following servers:</p>
-<form method="post" action="#">
+<form method="post" action="">
 	<div class="container">
 		<div class="row">
 			<div class="col-sm-6">
@@ -281,7 +281,7 @@ active
 {{/if}}
 {{#if user.is_admin}}
 <h3>User managment</h3>
-<form method="post" action="#" class="form-horizontal">
+<form method="post" action="" class="form-horizontal">
 	{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 	<div class="form-group">
 		<div class="col-sm-2">

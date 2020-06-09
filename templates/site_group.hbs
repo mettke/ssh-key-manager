@@ -22,7 +22,7 @@ active
 		{{#if (eq sub.member_len 0)}}
 		<p>No members have been added to this group yet.</p>
 		{{else}}
-		<form method="post" action="#">
+		<form method="post" action="">
 			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 			{{#if sub.group.system}}
 			<div class="alert alert-info">
@@ -42,21 +42,21 @@ active
 				<tbody>
 					{{#each sub.members}}
 					<tr>
-						{{#if (eq this.entity_type "User")}}
-						<td><a href="../../users/{{this.entity_id}}" class="user">{{this.name}}</a></td>
+						{{#if (eq this.member.type_ "User")}}
+						<td><a href="../../users/{{this.member.entity_id}}" class="user">{{this.member.name}}</a></td>
 						<td><em>User</em></td>
 						{{/if}}
-						{{#if (eq this.entity_type "ServerAccount")}}
-						<td><a href="../../servers/unimplemented/accounts/{{this.entity_id}}"
-								class="serveraccount">{{this.name}}@unimplemented</a></td>
+						{{#if (eq this.member.type_ "ServerAccount")}}
+						<td><a href="../../servers/{{this.member.server_id}}/accounts/{{this.member.entity_id}}"
+								class="serveraccount">{{this.member.name}}@{{this.member.server_name}}</a></td>
 						<td><em>Server account</em></td>
 						{{/if}}
-						{{#if (eq this.entity_type "Group")}}
-						<td><a href="../../groups/{{this.entity_id}}" class="group">{{this.name}}</a></td>
+						{{#if (eq this.member.type_ "Group")}}
+						<td><a href="../../groups/{{this.member.entity_id}}" class="group">{{this.member.name}}</a></td>
 						<td><em>Group</em></td>
 						{{/if}}
 						<td>
-							Added on {{this.grant_date}}
+							Added on {{this.add_date}}
 						</td>
 						{{#unless @root.sub.group.system}}
 						<td>
@@ -72,10 +72,10 @@ active
 		</form>
 		{{/if}}
 		{{#unless @root.sub.group.system}}
-		<form method="post" action="#">
-			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+		<form method="post" action="">
 			<h3>Add user</h3>
 			<div class="row">
+				<input type="hidden" id="csrf" name="csrf" value="{{csrf}}">
 				<div class="form-group col-md-9">
 					<div class="input-group">
 						<span class="input-group-addon"><label for="username"><span class="glyphicon glyphicon-user"
@@ -90,7 +90,7 @@ active
 				</div>
 			</div>
 		</form>
-		<form method="post" action="#">
+		<form method="post" action="">
 			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 			<h3>Add group</h3>
 			<div class="row">
@@ -108,7 +108,7 @@ active
 				</div>
 			</div>
 		</form>
-		<form method="post" action="#">
+		<form method="post" action="">
 			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 			<h3>Add server account</h3>
 			<div class="row">
@@ -140,7 +140,7 @@ active
 		{{#if (eq sub.access_to_len 0)}}
 		<p>No access rules are associated with this group.</p>
 		{{else}}
-		<form method="post" action="#">
+		<form method="post" action="">
 			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 			<table class="table table-bordered table-striped">
 				<thead>
@@ -198,7 +198,7 @@ active
 			</table>
 		</form>
 		{{/if}}
-		<form method="post" action="#">
+		<form method="post" action="">
 			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 			<h3>Grant user access</h3>
 			<div class="row">
@@ -217,7 +217,7 @@ active
 				</div>
 			</div>
 		</form>
-		<form method="post" action="#">
+		<form method="post" action="">
 			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 			<h3>Grant group access</h3>
 			<div class="row">
@@ -236,7 +236,7 @@ active
 				</div>
 			</div>
 		</form>
-		<form method="post" action="#">
+		<form method="post" action="">
 			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 			<h3>Grant server account access</h3>
 			<div class="row">
@@ -344,7 +344,7 @@ active
 		</form>
 		{{/if}}
 		{{#if (or @root.user.is_admin @root.sub.is_admin)}}
-		<form method="post" action="#" class="form-inline">
+		<form method="post" action="" class="form-inline">
 			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 			<h3>Add User</h3>
 			<div class="form-group">
@@ -354,7 +354,7 @@ active
 			</div>
 			<button type="submit" name="add_admin" value="1" class="btn btn-primary">Add User</button>
 		</form>
-		<form method="post" action="#" class="form-inline">
+		<form method="post" action="" class="form-inline">
 			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 			<h3>Add Group</h3>
 			<div class="form-group">
@@ -369,7 +369,7 @@ active
 	{{#if (and user.is_admin (not sub.group.system))}}
 	<div class="tab-pane fade" id="settings">
 		<h2 class="sr-only">Settings</h2>
-		<form method="post" action="#" class="form-horizontal">
+		<form method="post" action="" class="form-horizontal">
 			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
 			<div class="form-group">
 				<label for="name" class="col-sm-2 control-label">Name</label>

@@ -55,6 +55,8 @@
 
 /// Routes for authentication
 pub mod auth;
+/// Contains routes for group access
+pub mod groups;
 /// Contains routes for public key access
 pub mod public_keys;
 /// Contains routes for static file access

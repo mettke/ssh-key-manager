@@ -4,7 +4,7 @@ use crate::{
 };
 
 /// Allows fetching multiple Objects using a Filter
-pub trait FetchAll<'a, A: Auth, T, F, D: Database>: Sized {
+pub trait FetchAll<'a, A: Auth, T, F: ?Sized, D: Database>: Sized {
     /// Fetches multiple objects using a Filter.
     /// Returns an empty array if there are no objects
     /// or when the user is not allowed to view given object.

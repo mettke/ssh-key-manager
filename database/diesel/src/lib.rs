@@ -66,6 +66,7 @@ mod entity;
 mod error;
 mod event;
 mod group;
+mod group_members;
 mod macros;
 mod migrate;
 mod public_key;

@@ -109,10 +109,15 @@ pub enum Notification<'a> {
     Info {
         /// Name of the Type
         name: &'static str,
-        /// Base Linke
+        /// Base Link
         url: &'static str,
         /// Id of the new object
         id: Cow<'a, Id>,
+    },
+    /// Display an information linking to the new type
+    Modified {
+        /// Name of the Type
+        name: &'static str,
     },
     /// Display an error showing that a similar type already exists
     Unique {

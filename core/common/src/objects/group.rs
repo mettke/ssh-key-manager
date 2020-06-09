@@ -41,7 +41,7 @@ impl<'a, I: Iterator<Item = (Cow<'a, str>, Cow<'a, str>)>> From<I>
             if val.is_empty() {
                 continue;
             }
-            if let "type" = key.as_ref() {
+            if let "name" = key.as_ref() {
                 filter.name = Some(val);
             }
         }

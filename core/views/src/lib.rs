@@ -52,6 +52,8 @@
     clippy::module_name_repetitions
 )]
 
+mod group;
 mod public_key;
 
+pub use crate::group::{GroupListView, GroupView};
 pub use crate::public_key::{PublicKeyListView, PublicKeyView};

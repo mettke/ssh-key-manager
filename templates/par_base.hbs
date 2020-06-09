@@ -79,7 +79,7 @@
             <div class="alert alert-danger alert-dismissible" role="alert">
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
                         aria-hidden="true">&times;</span></button>
-                Unable to create {{this.Error.name}}. {{this.Error.para}} is missing or invalid. (<a
+                Unable to create/modify {{this.Error.name}}. {{this.Error.para}} is missing or invalid. (<a
                     href="{{this.Error.help}}">more</a>)
             </div>
             {{/if}}
@@ -88,6 +88,13 @@
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
                         aria-hidden="true">&times;</span></button>
                 <a href="{{this.Info.url}}/{{this.Info.id}}">{{this.Info.name}}</a> was created successfully.
+            </div>
+            {{/if}}
+            {{#if this.Modified}}
+            <div class="alert alert-success alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                {{this.Modified.name}} was successfully modified.
             </div>
             {{/if}}
             {{#if this.Deleted}}

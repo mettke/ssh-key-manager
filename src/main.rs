@@ -59,12 +59,15 @@ mod routes;
 use crate::args::{get_arguments, AuthType, CliArguments};
 use core_common::{
     database::{Create, Database, Delete, FetchAll, FetchById, FetchByUid, Save},
-    objects::{Entity, PublicKey, PublicKeyFilter, User},
+    objects::{
+        Entity, Group, GroupFilter, GroupMember, PublicKey, PublicKeyFilter, User,
+    },
     sec::{Auth, OAuth2, PreAuth},
     tokio::{fs, signal},
+    types::Id,
     web::{BaseData, BaseView, Server, TemplateEngine},
 };
-use std::{process::exit, sync::Arc, time::SystemTime};
+use std::{borrow::Cow, process::exit, sync::Arc, time::SystemTime};
 
 #[cfg(feature = "diesel")]
 use database_diesel::{DieselDB, PgConnection};
@@ -167,11 +170,17 @@ async fn build_server<A, D, T>(
         + FetchByUid<A, User<'a>, D>
         + FetchById<'b, A, PublicKey<'a>, D>
         + FetchById<'b, A, Entity<'a>, D>
+        + FetchById<'b, A, Group<'a>, D>
         + Create<PreAuth, User<'a>, D>
         + Create<A, PublicKey<'a>, D>
+        + Create<A, Group<'a>, D>
+        + Create<A, GroupMember<'a, Cow<'a, Id>>, D>
         + Delete<A, PublicKey<'a>, D>
+        + Delete<A, Group<'a>, D>
         + Save<PreAuth, User<'a>, D>
-        + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>,
+        + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>
+        + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>
+        + FetchAll<'b, A, GroupMember<'a, Entity<'a>>, Id, D>,
     T: 'static + TemplateEngine,
 {
     let oauth = if let AuthType::OAuth(ref oauth) = args.auth_type {
