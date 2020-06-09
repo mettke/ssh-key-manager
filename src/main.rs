@@ -49,7 +49,8 @@
     clippy::similar_names,
     clippy::else_if_without_else,
     clippy::multiple_crate_versions,
-    clippy::cargo_common_metadata
+    clippy::cargo_common_metadata,
+    clippy::used_underscore_binding
 )]
 
 mod args;
@@ -195,11 +196,14 @@ async fn build_server<A, D, T>(
         log::error!("Only OAuth2 supported");
         exit(1);
     };
+    let style_mtime = get_filetime("style.css").await;
+    let js_mtime = get_filetime("extra.js").await;
+    let jsh_mtime = get_filetime("header.js").await;
     let view = Arc::new(BaseView {
         title: "SSH Key Authority".into(),
-        style_mtime: get_filetime("style.css").await,
-        js_mtime: get_filetime("extra.js").await,
-        jsh_mtime: get_filetime("header.js").await,
+        style_mtime,
+        js_mtime,
+        jsh_mtime,
         version: Some(env!("CARGO_PKG_VERSION")),
     });
     let data = Arc::new(BaseData {

@@ -9,7 +9,9 @@ use std::{error, fmt::Debug, net::SocketAddr};
 
 /// Required methods for an incoming Request
 #[async_trait]
-pub trait Request<A: Auth, D: Database, T: TemplateEngine>: Debug + Sized {
+pub trait Request<A: Auth, D: Database, T: TemplateEngine>:
+    Debug + Sized + Send + Sync
+{
     /// the custom error for the request.
     type RequestError: error::Error;
 

@@ -2,6 +2,7 @@
 use core_common::serde_json::Value;
 use handlebars::{handlebars_helper, HelperDef};
 
+#[allow(clippy::redundant_pub_crate)]
 pub(crate) fn get_helpers() -> Vec<(&'static str, Box<dyn HelperDef + Send + Sync>)>
 {
     vec![

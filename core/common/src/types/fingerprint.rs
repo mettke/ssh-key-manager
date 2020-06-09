@@ -113,6 +113,7 @@ impl<'a> FingerprintMd5<'a> {
     /// Converts the given fingerprint to its string representation
     #[must_use]
     #[inline]
+    #[allow(clippy::integer_arithmetic)]
     pub fn to_str(&'a self) -> Cow<'a, str> {
         if let Some(text) = self.text.as_ref() {
             Cow::Borrowed(text.borrow())

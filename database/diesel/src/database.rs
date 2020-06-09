@@ -1,3 +1,5 @@
+#![allow(clippy::redundant_pub_crate)]
+
 use crate::{
     error::DieselError, exec, migrate::Migrate, schema::group_member, BinaryWrapper,
 };

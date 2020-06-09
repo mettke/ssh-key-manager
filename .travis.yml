@@ -1,30 +1,25 @@
 dist: trusty
 language: rust
 rust:
+  - 1.43.0
   - stable
+  - beta
+  - nightly
 os: linux
 env: RUST_BACKTRACE=full
 
 before_script:
   - cargo install cargo-patch
-  - sed -i '/jsonwebtoken/s/^/# /g' core/common/Cargo.toml
-  - sed -i '/reqwest/s/^/# /g' core/common/Cargo.toml
-  - sed -i '/rustls/s/^/# /g' web/hyper/Cargo.toml
-  - sed -i '/tokio-rustls/s/^/# /g' web/hyper/Cargo.toml
-  - cargo patch
-  - sed -i '/jsonwebtoken/s/^# //g' core/common/Cargo.toml
-  - sed -i '/reqwest/s/^# //g' core/common/Cargo.toml
-  - sed -i '/rustls/s/^# //g' web/hyper/Cargo.toml
-  - sed -i '/tokio-rustls/s/^# //g' web/hyper/Cargo.toml
-  - cargo install cargo-audit
-  - cargo install cargo-tree
-  - rustup component add clippy
+  - ./bin/patch.sh
+  - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo install cargo-audit; fi
+  - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo install cargo-tree; fi
+  - if [[ "$TRAVIS_RUST_VERSION" == "1.41.0" ]]; then rustup component add clippy; fi
 
 script:
   - cargo build
-  - cargo clippy
-  - cargo tree
-  - cargo audit
+  - if [[ "$TRAVIS_RUST_VERSION" == "1.41.0" ]]; then cargo clippy; fi
+  - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo tree; fi
+  - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo audit; fi
   
 before_deploy:
   - cargo build --release 

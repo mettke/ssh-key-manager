@@ -136,7 +136,7 @@ impl<A: 'static + Auth, D: 'static + Database, T: 'static + TemplateEngine>
         handler: Arc<H>,
     ) -> Result<HResponse<Body>, Infallible>
     where
-        H: Send + Fn(HyperRequest<A, D, T>) -> F,
+        H: Send + Sync + Fn(HyperRequest<A, D, T>) -> F,
         F: Send + Future<Output = Result<Response<ResponseType>, Infallible>>,
     {
         let (header, body) = req.into_parts();

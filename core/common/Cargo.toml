@@ -44,6 +44,7 @@ patches = [
 patches = [
     "patches/openidconnect/error.patch",
     "patches/openidconnect/oauth.patch",
+    "patches/openidconnect/untrusted.patch",
     "patches/openidconnect/warn.patch",
 ]
 

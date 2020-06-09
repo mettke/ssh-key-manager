@@ -6,13 +6,13 @@ use diesel::{
     Connection,
 };
 
-#[allow(clippy::unreachable)]
+#[allow(clippy::unreachable, clippy::redundant_pub_crate)]
 mod mysql {
     pub(crate) use embedded_migrations::run_with_output;
     embed_migrations!("migrations.mysql");
 }
 
-#[allow(clippy::unreachable)]
+#[allow(clippy::unreachable, clippy::redundant_pub_crate)]
 mod postgres {
     pub(crate) use embedded_migrations::run_with_output;
     embed_migrations!("migrations.postgres");

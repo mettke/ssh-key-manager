@@ -49,7 +49,8 @@
     clippy::similar_names,
     clippy::else_if_without_else,
     clippy::multiple_crate_versions,
-    clippy::module_name_repetitions
+    clippy::module_name_repetitions,
+    clippy::used_underscore_binding
 )]
 
 /// Routes for authentication

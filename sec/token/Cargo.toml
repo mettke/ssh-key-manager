@@ -11,8 +11,8 @@ keywords = ["ssh", "key", "management", "authentication"]
 categories = ["Authentication"]
 
 [dependencies]
-aes = "0.3"
-block-modes = "0.3"
+aes = "0.4"
+block-modes = "0.4"
 core_common = { path = "../../core/common" }
 rand = "0.7"
 serde = { version = "1.0", features = ["derive"] }
