@@ -24,6 +24,8 @@ const ARGS_DATABASE_USER_ENV: &str = "DB_USER";
 const ARGS_DATABASE_PASS: &str = "db-pass";
 const ARGS_DATABASE_PASS_ENV: &str = "DB_PASS";
 
+const ARGS_APP_HOME: &str = "app-home";
+const ARGS_APP_HOME_ENV: &str = "APP_HOME";
 const ARGS_APP_SECRET: &str = "app-secret";
 const ARGS_APP_SECRET_ENV: &str = "APP_SECRET";
 const ARGS_AUTH_TYPE: &str = "auth-type";
@@ -56,6 +58,7 @@ pub struct CliArguments {
     pub port: u16,
     pub log_level: Option<log::Level>,
     pub auth_type: AuthType,
+    pub app_home: String,
     pub app_secret: [u8; 32],
 
     pub db_host: Vec<String>,
@@ -143,6 +146,12 @@ pub fn get_arguments() -> CliArguments {
         eprintln!("Application Secret missing or small then 32 bytes");
         exit(1);
     };
+    let app_home = if let Some(v) = matches.value_of(ARGS_APP_HOME) {
+        v.into()
+    } else {
+        eprintln!("Application Home must be set");
+        exit(1);
+    };
 
     let auth_type = match matches.value_of(ARGS_AUTH_TYPE) {
         Some("password") => AuthType::Password,
@@ -220,6 +229,7 @@ pub fn get_arguments() -> CliArguments {
         port,
         log_level,
         auth_type,
+        app_home,
         app_secret,
 
         db_host,
@@ -311,6 +321,15 @@ fn get_cli_config<'a>() -> ArgMatches<'a> {
                 .env(ARGS_DATABASE_PASS_ENV)
                 .value_name("password")
                 .help("Database Password")
+                .takes_value(true)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name(ARGS_APP_HOME)
+                .long(ARGS_APP_HOME)
+                .env(ARGS_APP_HOME_ENV)
+                .value_name("home_url")
+                .help("App Home")
                 .takes_value(true)
                 .required(true),
         )
