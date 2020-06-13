@@ -3,7 +3,7 @@
 #![deny(
     absolute_paths_not_starting_with_crate,
     anonymous_parameters,
-    box_pointers,
+    // box_pointers,
     deprecated_in_future,
     elided_lifetimes_in_paths,
     explicit_outlives_requirements,
@@ -17,7 +17,7 @@
     missing_doc_code_examples,
     non_ascii_idents,
     private_doc_tests,
-    single_use_lifetimes,
+    // single_use_lifetimes,
     trivial_casts,
     trivial_numeric_casts,
     unreachable_pub,
@@ -49,7 +49,8 @@
     clippy::similar_names,
     clippy::else_if_without_else,
     clippy::multiple_crate_versions,
-    clippy::module_name_repetitions
+    clippy::module_name_repetitions,
+    clippy::used_underscore_binding
 )]
 
 mod group;

@@ -3,12 +3,14 @@ use crate::{
     schema::event, BinaryWrapper, DbWrapper, DieselDB, UniqueExtension,
 };
 use core_common::{
+    async_trait::async_trait,
     chrono::NaiveDateTime,
     database::{
         Create, DatabaseError, DbList, DbResult, FetchAll, FetchById, FetchFirst,
     },
     objects::{Event, EventFilter},
     sec::Auth,
+    tokio::task,
     types::{EventTypes, Id},
 };
 use diesel::{
@@ -24,7 +26,7 @@ use diesel::{
     Connection, ExpressionMethods, NullableExpressionMethods, OptionalExtension,
     QueryDsl, Queryable, RunQueryDsl, TextExpressionMethods,
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, marker::PhantomData};
 
 #[derive(Debug, Clone, Queryable)]
 struct InnerEvent<'a> {
@@ -94,7 +96,8 @@ impl<'a> Into<Event<'a>> for InnerEvent<'a> {
     }
 }
 
-impl<'a, B, C, A> FetchById<'_, A, Event<'a>, Self> for DieselDB<C>
+#[async_trait]
+impl<'a, B, C, A> FetchById<'a, A, Event<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -111,13 +114,21 @@ where
     DbWrapper<EventTypes>: Queryable<DbWrapper<EventTypes>, B>,
 {
     #[inline]
-    fn fetch(&self, id: &Id, auth: &A) -> DbResult<Option<Event<'a>>, Self> {
+    async fn fetch(
+        &self,
+        id: &Id,
+        auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<Option<Event<'a>>, Self> {
         if auth.is_admin() {
-            let conn = self.get()?;
             let query = event::dsl::event
                 .select(InnerEvent::keys())
                 .find(BinaryWrapper(id));
-            let res: Option<InnerEvent<'_>> = exec_opt!(query, conn, first)?;
+
+            let res: Option<InnerEvent<'_>> = task::block_in_place(|| {
+                let conn = self.get()?;
+                exec_opt!(query, conn, first)
+            })?;
             Ok(res.map(|v| v.into()))
         } else {
             Ok(None)
@@ -125,44 +136,9 @@ where
     }
 }
 
-impl<'a, B, C, A> FetchFirst<A, Event<'a>, EventFilter<'_>, Self> for DieselDB<C>
-where
-    A: Auth,
-    B: 'static
-        + Backend<RawValue = [u8]>
-        + UsesAnsiSavepointSyntax
-        + HasSqlType<Bool>
-        + HasSqlType<DbWrapper<EventTypes>>
-        + SupportsDefaultKeyword,
-    C: 'static
-        + Connection<Backend = B, TransactionManager = AnsiTransactionManager>
-        + Migrate,
-    bool: ToSql<Bool, B>,
-    NaiveDateTime: FromSql<Timestamp, B>,
-    DbWrapper<EventTypes>: Queryable<DbWrapper<EventTypes>, B>,
-{
-    #[inline]
-    fn fetch_first(
-        &self,
-        filter: &EventFilter<'_>,
-        auth: &A,
-    ) -> DbResult<Option<Event<'a>>, Self> {
-        if auth.is_admin() {
-            let conn = self.get()?;
-            let query = event::dsl::event
-                .select(InnerEvent::keys())
-                .order_by(event::date.desc())
-                .into_boxed::<B>();
-            let query = InnerEvent::filter(query, filter);
-            let res: Option<InnerEvent<'_>> = exec_opt!(query, conn, first)?;
-            Ok(res.map(|v| v.into()))
-        } else {
-            Ok(None)
-        }
-    }
-}
-
-impl<'a, 'b, B, C, A> FetchAll<'b, A, Event<'a>, EventFilter<'_>, Self>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, 'b, B, C, A> FetchFirst<'a, 'b, A, Event<'a>, EventFilter<'b>, Self>
     for DieselDB<C>
 where
     A: Auth,
@@ -180,22 +156,61 @@ where
     DbWrapper<EventTypes>: Queryable<DbWrapper<EventTypes>, B>,
 {
     #[inline]
-    fn fetch_all(
+    async fn fetch_first(
         &self,
-        filter: &'b EventFilter<'_>,
-        auth: &'b A,
+        filter: &EventFilter<'b>,
+        auth: &A,
+        _: PhantomData<(&'a (), &'b ())>,
+    ) -> DbResult<Option<Event<'a>>, Self> {
+        if auth.is_admin() {
+            let query = event::dsl::event
+                .select(InnerEvent::keys())
+                .order_by(event::date.desc())
+                .into_boxed::<B>();
+            let query = InnerEvent::filter(query, filter);
+            let res: Option<InnerEvent<'_>> = task::block_in_place(|| {
+                let conn = self.get()?;
+                exec_opt!(query, conn, first)
+            })?;
+            Ok(res.map(|v| v.into()))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+#[allow(unused_lifetimes)]
+#[async_trait]
+impl<'a, 'b, B, C, A> FetchAll<'a, 'b, A, Event<'a>, EventFilter<'b>, Self>
+    for DieselDB<C>
+where
+    A: Auth,
+    B: 'static
+        + Backend<RawValue = [u8]>
+        + UsesAnsiSavepointSyntax
+        + HasSqlType<Bool>
+        + HasSqlType<DbWrapper<EventTypes>>
+        + SupportsDefaultKeyword,
+    C: 'static
+        + Connection<Backend = B, TransactionManager = AnsiTransactionManager>
+        + Migrate,
+    bool: ToSql<Bool, B>,
+    NaiveDateTime: FromSql<Timestamp, B>,
+    DbWrapper<EventTypes>: Queryable<DbWrapper<EventTypes>, B>,
+{
+    #[inline]
+    async fn fetch_all(
+        &self,
+        filter: &EventFilter<'b>,
+        auth: &A,
         page: usize,
+        _: PhantomData<(&'a (), &'b ())>,
     ) -> DbResult<DbList<Event<'a>>, Self> {
         if auth.is_admin() {
-            let res: Vec<InnerEvent<'_>>;
-            let conn = self.get()?;
-
             let offset = Self::compute_offset(page);
             let count_query =
                 event::dsl::event.select(count_star()).into_boxed::<B>();
             let count_query = InnerEvent::filter(count_query, filter);
-            let count = Self::compute_count(exec!(count_query, conn, first)?);
-            let page_max = Self::compute_page_max(count);
 
             let query = event::dsl::event
                 .select(InnerEvent::keys())
@@ -204,7 +219,16 @@ where
                 .order_by(event::date.desc())
                 .into_boxed::<B>();
             let query = InnerEvent::filter(query, filter);
-            res = exec!(query, conn, load)?;
+
+            let (count, res) = task::block_in_place(|| {
+                let conn = self.get()?;
+                let count = exec!(count_query, conn, first)?;
+                let res: Vec<InnerEvent<'_>> = exec!(query, conn, load)?;
+                Ok((count, res))
+            })?;
+
+            let count = Self::compute_count(count);
+            let page_max = Self::compute_page_max(count);
 
             Ok(DbList {
                 data: res.into_iter().map(|v| v.into()).collect(),
@@ -223,7 +247,10 @@ where
     }
 }
 
-impl<A, B, C: 'static + Connection> Create<A, Event<'_>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C: 'static + Connection> Create<'a, A, Event<'a>, Self>
+    for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -236,8 +263,12 @@ where
         + Migrate,
 {
     #[inline]
-    fn create(&self, object: &Event<'_>, _auth: &A) -> DbResult<(), Self> {
-        let conn = self.get()?;
+    async fn create(
+        &self,
+        object: &Event<'a>,
+        _auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
         let query = insert_into(event::dsl::event).values((
             event::id.eq(BinaryWrapper(&object.id)),
             event::actor_id.eq(object.actor_id.as_ref().map(BinaryWrapper)),
@@ -245,6 +276,9 @@ where
             event::type_.eq(DbWrapper(object.type_)),
             event::object_id.eq(object.object_id.as_ref().map(BinaryWrapper)),
         ));
-        exec_unique!(query, conn, execute).map(|_| ())
+        task::block_in_place(|| {
+            let conn = self.get()?;
+            exec_unique!(query, conn, execute).map(|_| ())
+        })
     }
 }

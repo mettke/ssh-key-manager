@@ -44,9 +44,9 @@ where
     A: Auth,
     for<'a> D: 'static
         + Database
-        + FetchByUid<PreAuth, User<'a>, D>
-        + Create<PreAuth, User<'a>, D>
-        + Save<PreAuth, User<'a>, D>,
+        + FetchByUid<'a, PreAuth, User<'a>, D>
+        + Create<'a, PreAuth, User<'a>, D>
+        + Save<'a, PreAuth, User<'a>, D>,
     T: 'static + TemplateEngine,
 {
     type RequestError = hyper::error::Error;

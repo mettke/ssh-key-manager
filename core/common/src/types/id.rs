@@ -54,7 +54,6 @@ impl Id {
     ///
     /// Will fail with `UuidConversionError::InvalidSize` if Array length is not 16
     #[inline]
-    #[allow(single_use_lifetimes)]
     pub fn from_slice<'a, B: Into<&'a [u8]>>(
         bytes: B,
     ) -> Result<Self, UuidConversionError> {

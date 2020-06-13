@@ -7,7 +7,7 @@ use core_common::{
     types::Id,
     web::{AppError, Notification, Request, TemplateEngine},
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, marker::PhantomData};
 
 /// A List of groups ready to be presented
 #[derive(Debug)]
@@ -19,21 +19,22 @@ impl<'a> GroupListView<'a> {
     /// # Errors
     /// Fails when database connection fails
     #[inline]
-    #[allow(unused_lifetimes, single_use_lifetimes)]
+    #[allow(unused_lifetimes)]
     pub async fn fetch<A, D, T, R>(
         req: &R,
         filter: &GroupFilter<'_>,
     ) -> Result<GroupListView<'a>, AppError<A, D, T, R>>
     where
         A: Auth,
-        for<'b, 'c> D: Database + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>,
+        for<'b> D: Database + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>,
         T: TemplateEngine,
         R: Request<A, D, T>,
     {
         let auth = req.get_auth();
         let db = req.get_database();
 
-        db.fetch_all(filter, auth, 0)
+        db.fetch_all(filter, auth, 0, PhantomData)
+            .await
             .map(Self)
             .map_err(AppError::DatabaseError)
     }
@@ -43,7 +44,7 @@ impl<'a> GroupListView<'a> {
     /// # Errors
     /// Fails when database connection fails
     #[inline]
-    #[allow(unused_lifetimes, single_use_lifetimes, clippy::needless_lifetimes)]
+    #[allow(unused_lifetimes, clippy::needless_lifetimes)]
     pub async fn create<'e, A, D, T, R>(
         req: &mut R,
         name: Option<Cow<'e, str>>,
@@ -53,9 +54,9 @@ impl<'a> GroupListView<'a> {
     ) -> Result<[Notification<'e>; 1], AppError<A, D, T, R>>
     where
         A: Auth,
-        for<'b, 'c, 'd> D: Database
-            + FetchAll<'b, A, Group<'d>, GroupFilter<'c>, D>
-            + Create<A, Group<'d>, D>,
+        for<'b> D: Database
+            + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>
+            + Create<'b, A, Group<'b>, D>,
         T: TemplateEngine,
         R: Request<A, D, T>,
     {
@@ -68,7 +69,7 @@ impl<'a> GroupListView<'a> {
         }
         let db = req.get_database();
         let auth = req.get_auth();
-        let id = db.generate_id()?;
+        let id = db.generate_id().await?;
         if let Some(name) = name {
             let group = Group {
                 entity_id: Cow::Owned(id),
@@ -77,7 +78,7 @@ impl<'a> GroupListView<'a> {
                 oauth_scope,
                 ldap_group,
             };
-            match db.create(&group, auth) {
+            match db.create(&group, auth, PhantomData).await {
                 Err(err @ DatabaseError::Custom(_)) => {
                     Err(AppError::DatabaseError(err))
                 }
@@ -120,7 +121,7 @@ impl GroupView<'_> {
     /// # Errors
     /// Fails when database connection fails
     #[inline]
-    #[allow(unused_lifetimes, single_use_lifetimes)]
+    #[allow(unused_lifetimes)]
     pub async fn fetch<'a, A, D, T, R>(
         req: &R,
         id: &str,
@@ -128,8 +129,8 @@ impl GroupView<'_> {
     where
         A: Auth,
         for<'b> D: Database
-            + FetchById<'b, A, Group<'a>, D>
-            + FetchAll<'b, A, GroupMember<'a, Entity<'a>>, Id, D>,
+            + FetchById<'a, A, Group<'a>, D>
+            + FetchAll<'a, 'b, A, GroupMember<'a, Entity<'a>>, Id, D>,
         T: TemplateEngine,
         R: Request<A, D, T>,
     {
@@ -143,10 +144,12 @@ impl GroupView<'_> {
             Ok(id) => id,
         };
 
-        let group: Option<Group<'_>> = db.fetch(&id, auth)?;
+        let group: Option<Group<'_>> = db.fetch(&id, auth, PhantomData).await?;
         if let Some(group) = group {
-            let members: Vec<GroupMember<'a, Entity<'a>>> =
-                db.fetch_all(&group.entity_id, auth, 0)?.data;
+            let members: Vec<GroupMember<'a, Entity<'a>>> = db
+                .fetch_all(&group.entity_id, auth, 0, PhantomData)
+                .await?
+                .data;
             Ok(Some(GroupView {
                 group,
                 members,
@@ -162,7 +165,7 @@ impl GroupView<'_> {
     /// # Errors
     /// Fails when database connection fails
     #[inline]
-    #[allow(unused_lifetimes, single_use_lifetimes, clippy::needless_lifetimes)]
+    #[allow(unused_lifetimes, clippy::needless_lifetimes)]
     pub async fn add_member_user<'e, A, D, T, R>(
         req: &mut R,
         id: Id,
@@ -171,9 +174,9 @@ impl GroupView<'_> {
     ) -> Result<[Notification<'e>; 1], AppError<A, D, T, R>>
     where
         A: Auth,
-        for<'b, 'c, 'd> D: Database
-            + FetchAll<'b, A, Group<'d>, GroupFilter<'c>, D>
-            + Create<A, GroupMember<'d, Cow<'d, Id>>, D>,
+        for<'b, 'c> D: Database
+            + FetchAll<'b, 'c, A, Group<'b>, GroupFilter<'c>, D>
+            + Create<'b, A, GroupMember<'b, Cow<'b, Id>>, D>,
         T: TemplateEngine,
         R: Request<A, D, T>,
     {
@@ -193,7 +196,7 @@ impl GroupView<'_> {
                 member: user.entity_id.clone(),
                 add_date,
             };
-            match db.create(&member, auth) {
+            match db.create(&member, auth, PhantomData).await {
                 Err(err @ DatabaseError::Custom(_)) => {
                     Err(AppError::DatabaseError(err))
                 }

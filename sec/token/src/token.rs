@@ -192,9 +192,9 @@ impl Auth for Token {
     ) -> Option<Self>
     where
         for<'a> D: Database
-            + FetchByUid<PreAuth, User<'a>, D>
-            + Create<PreAuth, User<'a>, D>
-            + Save<PreAuth, User<'a>, D>,
+            + FetchByUid<'a, PreAuth, User<'a>, D>
+            + Create<'a, PreAuth, User<'a>, D>
+            + Save<'a, PreAuth, User<'a>, D>,
         T: TemplateEngine,
         R: Request<Self, D, T> + Sync,
     {
@@ -230,7 +230,7 @@ impl Auth for Token {
     }
 
     #[inline]
-    fn create<D, T, R>(
+    async fn create<D, T, R>(
         req: &R,
         username: String,
         name: &str,
@@ -240,9 +240,9 @@ impl Auth for Token {
     ) -> Result<Option<Self>, AppError<Self, D, T, R>>
     where
         for<'a> D: Database
-            + FetchByUid<PreAuth, User<'a>, D>
-            + Create<PreAuth, User<'a>, D>
-            + Save<PreAuth, User<'a>, D>,
+            + FetchByUid<'a, PreAuth, User<'a>, D>
+            + Create<'a, PreAuth, User<'a>, D>
+            + Save<'a, PreAuth, User<'a>, D>,
         T: TemplateEngine,
         R: Request<Self, D, T>,
     {
@@ -251,6 +251,7 @@ impl Auth for Token {
         let db = req.get_database();
         let user =
             User::update_or_create_user(db, &PreAuth, &username, name, email, type_)
+                .await
                 .map_err(AppError::DatabaseError)?;
         let token = Self {
             iss: "SSH Key Authority".to_string(),

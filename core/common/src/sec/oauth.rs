@@ -216,9 +216,9 @@ impl OAuth2 {
     where
         A: Auth,
         for<'a> D: Database
-            + FetchByUid<PreAuth, objects::User<'a>, D>
-            + Create<PreAuth, objects::User<'a>, D>
-            + Save<PreAuth, objects::User<'a>, D>,
+            + FetchByUid<'a, PreAuth, objects::User<'a>, D>
+            + Create<'a, PreAuth, objects::User<'a>, D>
+            + Save<'a, PreAuth, objects::User<'a>, D>,
         T: TemplateEngine,
         R: Request<A, D, T>,
     {
@@ -280,7 +280,8 @@ impl OAuth2 {
 
         let mut cookies = Vec::with_capacity(3);
         let auth =
-            Auth::create(req, user.username, &user.name, &user.email, a_exp, type_)?
+            Auth::create(req, user.username, &user.name, &user.email, a_exp, type_)
+                .await?
                 .and_then(|auth| {
                     Some(auth.get_str(req).transpose()?.map(|auth_plain| {
                         let cookie = Self::create_token_cookie(req, &auth_plain);

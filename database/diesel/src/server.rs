@@ -6,6 +6,7 @@ use crate::{
     BinaryWrapper, DbWrapper, DieselDB, UniqueExtension,
 };
 use core_common::{
+    async_trait::async_trait,
     chrono::NaiveDateTime,
     database::{
         Create, Database, DatabaseError, DbList, DbResult, Delete, FetchAll,
@@ -13,6 +14,7 @@ use core_common::{
     },
     objects::{Server, ServerFilter},
     sec::Auth,
+    tokio::task,
     types::{AuthorizationType, Id, KeyManagement, SyncStatusType},
 };
 use diesel::{
@@ -27,7 +29,10 @@ use diesel::{
     BoolExpressionMethods, Connection, ExpressionMethods, OptionalExtension,
     QueryDsl, Queryable, RunQueryDsl, TextExpressionMethods,
 };
-use std::borrow::{Borrow, Cow};
+use std::{
+    borrow::{Borrow, Cow},
+    marker::PhantomData,
+};
 
 #[derive(Debug, Clone, Queryable)]
 struct InnerServer<'a> {
@@ -131,7 +136,8 @@ impl<'a> Into<Server<'a>> for InnerServer<'a> {
 }
 
 #[allow(clippy::type_repetition_in_bounds)]
-impl<'a, 'b, B, C, A> FetchById<'a, A, Server<'b>, Self> for DieselDB<C>
+#[async_trait]
+impl<'a, B, C, A> FetchById<'a, A, Server<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -152,16 +158,23 @@ where
     DbWrapper<SyncStatusType>: Queryable<DbWrapper<SyncStatusType>, B>,
 {
     #[inline]
-    fn fetch(&self, id: &'a Id, auth: &A) -> DbResult<Option<Server<'b>>, Self> {
+    async fn fetch(
+        &self,
+        id: &Id,
+        auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<Option<Server<'a>>, Self> {
         let ids;
         let res: Option<InnerServer<'_>>;
-        let conn = self.get()?;
 
         let query = server::dsl::server.find(BinaryWrapper(id));
         res = if auth.is_admin() {
-            exec_opt!(query, conn, first)
+            task::block_in_place(|| {
+                let conn = self.get()?;
+                exec_opt!(query, conn, first)
+            })
         } else {
-            ids = self.fetch_permission_ids(Cow::Borrowed(id))?;
+            ids = self.fetch_permission_ids(Cow::Borrowed(id)).await?;
             let ids: Vec<BinaryWrapper<Cow<'_, Id>>> = ids
                 .iter()
                 .map(Borrow::borrow)
@@ -170,14 +183,18 @@ where
                 .collect();
             let mut query = query.into_boxed::<B>();
             query = InnerServer::permission_filter(query, &ids);
-            exec_opt!(query, conn, first)
+            task::block_in_place(|| {
+                let conn = self.get()?;
+                exec_opt!(query, conn, first)
+            })
         }?;
         Ok(res.map(|v| v.into()))
     }
 }
 
-#[allow(clippy::type_repetition_in_bounds)]
-impl<'a, 'b, B: 'b, C, A> FetchAll<'b, A, Server<'a>, ServerFilter<'b>, Self>
+#[allow(clippy::type_repetition_in_bounds, unused_lifetimes)]
+#[async_trait]
+impl<'a, 'b, B, C, A> FetchAll<'a, 'b, A, Server<'a>, ServerFilter<'b>, Self>
     for DieselDB<C>
 where
     A: Auth,
@@ -199,16 +216,15 @@ where
     DbWrapper<SyncStatusType>: Queryable<DbWrapper<SyncStatusType>, B>,
 {
     #[inline]
-    fn fetch_all(
+    async fn fetch_all(
         &self,
-        filter: &'b ServerFilter<'b>,
-        auth: &'b A,
+        filter: &ServerFilter<'b>,
+        auth: &A,
         page: usize,
+        _: PhantomData<(&'a (), &'b ())>,
     ) -> DbResult<DbList<Server<'a>>, Self> {
         let ids: Vec<Cow<'_, Id>>;
         let id_ref: &'_ [Cow<'_, Id>];
-        let res: Vec<InnerServer<'a>>;
-        let conn = self.get()?;
 
         let offset = Self::compute_offset(page);
 
@@ -219,7 +235,9 @@ where
                 .map(Borrow::borrow)
                 .map(Cow::Borrowed)
         } else {
-            ids = self.fetch_permission_ids(Cow::Borrowed(auth.get_id()))?;
+            ids = self
+                .fetch_permission_ids(Cow::Borrowed(auth.get_id()))
+                .await?;
             id_ref = ids.as_slice();
             Some(Cow::Borrowed(id_ref))
         };
@@ -235,15 +253,22 @@ where
         let count_query = server::dsl::server.select(count_star()).into_boxed::<B>();
         let count_query =
             InnerServer::filter(count_query, filter, permission_ids.as_deref());
-        let count = Self::compute_count(exec!(count_query, conn, first)?);
-        let page_max = Self::compute_page_max(count);
 
         let query = server::dsl::server
             .limit(25)
             .offset(offset)
             .into_boxed::<B>();
         let query = InnerServer::filter(query, filter, permission_ids.as_deref());
-        res = exec!(query, conn, load)?;
+
+        let (count, res) = task::block_in_place(|| {
+            let conn = self.get()?;
+            let count = exec!(count_query, conn, first)?;
+            let res: Vec<InnerServer<'a>> = exec!(query, conn, load)?;
+            Ok((count, res))
+        })?;
+
+        let count = Self::compute_count(count);
+        let page_max = Self::compute_page_max(count);
 
         Ok(DbList {
             data: res.into_iter().map(|v| v.into()).collect(),
@@ -254,8 +279,10 @@ where
     }
 }
 
-#[allow(clippy::type_repetition_in_bounds)]
-impl<'a, B, C, A> FetchAllFor<A, Server<'a>, ServerFilter<'_>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(clippy::type_repetition_in_bounds, unused_lifetimes)]
+impl<'a, 'b, B, C, A> FetchAllFor<'a, 'b, A, Server<'a>, ServerFilter<'b>, Self>
+    for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -276,18 +303,16 @@ where
     DbWrapper<SyncStatusType>: Queryable<DbWrapper<SyncStatusType>, B>,
 {
     #[inline]
-    fn fetch_all_for(
+    async fn fetch_all_for(
         &self,
-        filter: &ServerFilter<'_>,
+        filter: &ServerFilter<'b>,
         auth: &A,
         page: usize,
+        _: PhantomData<(&'a (), &'b ())>,
     ) -> DbResult<DbList<Server<'a>>, Self> {
-        let res: Vec<InnerServer<'a>>;
-        let conn = self.get()?;
-
         let offset = Self::compute_offset(page);
         let id = auth.get_id();
-        let permission_ids = self.fetch_permission_ids(Cow::Borrowed(id))?;
+        let permission_ids = self.fetch_permission_ids(Cow::Borrowed(id)).await?;
         let permission_ids: Option<Vec<BinaryWrapper<Cow<'_, Id>>>> = Some(
             permission_ids
                 .iter()
@@ -300,15 +325,22 @@ where
         let count_query = server::dsl::server.select(count_star()).into_boxed::<B>();
         let count_query =
             InnerServer::filter(count_query, filter, permission_ids.as_deref());
-        let count = Self::compute_count(exec!(count_query, conn, first)?);
-        let page_max = Self::compute_page_max(count);
 
         let query = server::dsl::server
             .limit(25)
             .offset(offset)
             .into_boxed::<B>();
         let query = InnerServer::filter(query, filter, permission_ids.as_deref());
-        res = exec!(query, conn, load)?;
+
+        let (count, res) = task::block_in_place(|| {
+            let conn = self.get()?;
+            let count = exec!(count_query, conn, first)?;
+            let res: Vec<InnerServer<'a>> = exec!(query, conn, load)?;
+            Ok((count, res))
+        })?;
+
+        let count = Self::compute_count(count);
+        let page_max = Self::compute_page_max(count);
 
         Ok(DbList {
             data: res.into_iter().map(|v| v.into()).collect(),
@@ -319,7 +351,10 @@ where
     }
 }
 
-impl<'a, A, B, C: 'static + Connection> Create<A, Server<'a>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C: 'static + Connection> Create<'a, A, Server<'a>, Self>
+    for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -334,8 +369,12 @@ where
         + Migrate,
 {
     #[inline]
-    fn create(&self, object: &Server<'a>, _auth: &A) -> DbResult<(), Self> {
-        let conn = self.get()?;
+    async fn create(
+        &self,
+        object: &Server<'a>,
+        _auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
         let query = insert_into(server::dsl::server).values((
             server::id.eq(BinaryWrapper(&object.id)),
             server::hostname.eq(&object.hostname),
@@ -347,7 +386,10 @@ where
             server::name.eq(&object.rsa_key_fingerprint),
             server::port.eq(object.port),
         ));
-        exec_unique!(query, conn, execute).map(|_| ())
+        task::block_in_place(|| {
+            let conn = self.get()?;
+            exec_unique!(query, conn, execute).map(|_| ())
+        })
         // if let DbResult::Ok(_) = res {
         //     let details = Cow::Owned(
         //         json!({
@@ -370,7 +412,9 @@ where
     }
 }
 
-impl<A, B, C> Delete<A, Server<'_>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C> Delete<'a, A, Server<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -387,15 +431,23 @@ where
     bool: ToSql<Bool, B>,
 {
     #[inline]
-    fn delete(&self, ids: &[Id], auth: &A) -> DbResult<(), Self> {
+    async fn delete(
+        &self,
+        ids: &[Id],
+        auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
         if auth.is_admin() {
-            let conn = self.get()?;
             let ids: Vec<BinaryWrapper<&Id>> =
                 ids.iter().map(BinaryWrapper).collect();
             let query = diesel::delete(server::dsl::server)
                 .filter(server::id.eq_any(&ids))
                 .into_boxed::<B>();
-            let _ = exec!(query, conn, execute)?;
+
+            let _ = task::block_in_place(|| {
+                let conn = self.get()?;
+                exec!(query, conn, execute)
+            })?;
         }
         Ok(())
     }

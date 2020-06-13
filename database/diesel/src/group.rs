@@ -6,11 +6,13 @@ use crate::{
     BinaryWrapper, DbWrapper, DieselDB, UniqueExtension,
 };
 use core_common::{
+    async_trait::async_trait,
     database::{
         Create, DatabaseError, DbList, DbResult, Delete, FetchAll, FetchById,
     },
     objects::{Group, GroupFilter},
     sec::Auth,
+    tokio::task,
     types::{EntityTypes, Id},
 };
 use diesel::{
@@ -25,7 +27,7 @@ use diesel::{
     Connection, ExpressionMethods, OptionalExtension, QueryDsl, Queryable,
     RunQueryDsl, TextExpressionMethods,
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, marker::PhantomData};
 
 #[derive(Debug, Clone, Queryable)]
 struct InnerGroup<'a> {
@@ -68,8 +70,9 @@ impl<'a> Into<Group<'a>> for InnerGroup<'a> {
     }
 }
 
+#[async_trait]
 #[allow(clippy::type_repetition_in_bounds)]
-impl<'a, B, C, A> FetchById<'_, A, Group<'a>, Self> for DieselDB<C>
+impl<'a, B, C, A> FetchById<'a, A, Group<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -83,18 +86,27 @@ where
     bool: ToSql<Bool, B> + FromSql<Bool, B>,
 {
     #[inline]
-    fn fetch(&self, id: &Id, _auth: &A) -> DbResult<Option<Group<'a>>, Self> {
+    async fn fetch(
+        &self,
+        id: &Id,
+        _auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<Option<Group<'a>>, Self> {
         let res: Option<InnerGroup<'a>>;
-        let conn = self.get()?;
-
         let query = groups::dsl::groups.find(BinaryWrapper(id));
-        res = exec_opt!(query, conn, first)?;
+
+        res = task::block_in_place(|| {
+            let conn = self.get()?;
+            exec_opt!(query, conn, first)
+        })?;
         Ok(res.map(|v| v.into()))
     }
 }
 
-#[allow(clippy::type_repetition_in_bounds)]
-impl<'a, B, C, A> FetchAll<'_, A, Group<'a>, GroupFilter<'_>, Self> for DieselDB<C>
+#[allow(clippy::type_repetition_in_bounds, unused_lifetimes)]
+#[async_trait]
+impl<'a, 'b, B, C, A> FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, Self>
+    for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -108,28 +120,33 @@ where
     bool: ToSql<Bool, B> + FromSql<Bool, B>,
 {
     #[inline]
-    fn fetch_all(
+    async fn fetch_all(
         &self,
-        filter: &GroupFilter<'_>,
+        filter: &GroupFilter<'b>,
         _auth: &A,
         page: usize,
+        _: PhantomData<(&'a (), &'b ())>,
     ) -> DbResult<DbList<Group<'a>>, Self> {
-        let res: Vec<InnerGroup<'a>>;
-        let conn = self.get()?;
-
         let offset = Self::compute_offset(page);
 
         let count_query = groups::dsl::groups.select(count_star()).into_boxed::<B>();
         let count_query = InnerGroup::filter(count_query, filter);
-        let count = Self::compute_count(exec!(count_query, conn, first)?);
-        let page_max = Self::compute_page_max(count);
 
         let query = groups::dsl::groups
             .limit(25)
             .offset(offset)
             .into_boxed::<B>();
         let query = InnerGroup::filter(query, filter);
-        res = exec!(query, conn, load)?;
+
+        let (count, res) = task::block_in_place(|| {
+            let conn = self.get()?;
+            let count = exec!(count_query, conn, first)?;
+            let res: Vec<InnerGroup<'a>> = exec!(query, conn, load)?;
+            Ok((count, res))
+        })?;
+
+        let count = Self::compute_count(count);
+        let page_max = Self::compute_page_max(count);
 
         Ok(DbList {
             data: res.into_iter().map(|v| v.into()).collect(),
@@ -140,7 +157,10 @@ where
     }
 }
 
-impl<'a, A, B, C: 'static + Connection> Create<A, Group<'a>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C: 'static + Connection> Create<'a, A, Group<'a>, Self>
+    for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -155,22 +175,29 @@ where
     bool: ToSql<Bool, B>,
 {
     #[inline]
-    fn create(&self, object: &Group<'a>, _auth: &A) -> DbResult<(), Self> {
-        let conn = self.get()?;
-        let query = insert_into(entity::dsl::entity).values((
+    async fn create(
+        &self,
+        object: &Group<'a>,
+        _auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
+        let entity_query = insert_into(entity::dsl::entity).values((
             entity::id.eq(BinaryWrapper(&object.entity_id)),
             entity::type_.eq(DbWrapper(EntityTypes::Group)),
         ));
-        let _ = exec_unique!(query, conn, execute)?;
-
-        let query = insert_into(groups::dsl::groups).values((
+        let groups_query = insert_into(groups::dsl::groups).values((
             groups::entity_id.eq(BinaryWrapper(&object.entity_id)),
             groups::name.eq(&object.name),
             groups::system.eq(object.system),
             groups::oauth_scope.eq(&object.oauth_scope),
             groups::ldap_group.eq(&object.ldap_group),
         ));
-        exec_unique!(query, conn, execute).map(|_| ())
+
+        task::block_in_place(|| {
+            let conn = self.get()?;
+            let _ = exec_unique!(entity_query, conn, execute)?;
+            exec_unique!(groups_query, conn, execute).map(|_| ())
+        })
         // if let DbResult::Ok(_) = res {
         //     let details = Cow::Owned(
         //         json!({
@@ -193,7 +220,9 @@ where
     }
 }
 
-impl<A, B, C> Delete<A, Group<'_>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C> Delete<'a, A, Group<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -207,15 +236,22 @@ where
     bool: ToSql<Bool, B>,
 {
     #[inline]
-    fn delete(&self, ids: &[Id], auth: &A) -> DbResult<(), Self> {
+    async fn delete(
+        &self,
+        ids: &[Id],
+        auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
         if auth.is_admin() {
-            let conn = self.get()?;
             let ids: Vec<BinaryWrapper<&Id>> =
                 ids.iter().map(BinaryWrapper).collect();
             let query = diesel::delete(groups::dsl::groups)
                 .filter(groups::entity_id.eq_any(&ids))
                 .into_boxed::<B>();
-            let _ = exec!(query, conn, execute)?;
+            let _ = task::block_in_place(|| {
+                let conn = self.get()?;
+                exec!(query, conn, execute)
+            })?;
         }
         Ok(())
     }

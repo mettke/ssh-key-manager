@@ -14,14 +14,13 @@ use core_common::{
     },
 };
 use core_views::{GroupListView, GroupView};
-use std::borrow::Cow;
+use std::{borrow::Cow, marker::PhantomData};
 
 /// Serves the groups route
 ///
 /// # Errors
 /// Fails when the communication with the database fails
 #[inline]
-#[allow(single_use_lifetimes)]
 pub async fn index<A, D, T, R>(
     req: &mut R,
     res: response::Builder,
@@ -29,14 +28,14 @@ pub async fn index<A, D, T, R>(
 ) -> Result<Response<ResponseType>, AppError<A, D, T, R>>
 where
     A: Auth,
-    for<'a, 'b, 'c> D: Database
-        + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>
-        + FetchAll<'b, A, GroupMember<'a, Entity<'a>>, Id, D>
-        + FetchByUid<A, User<'a>, D>
-        + FetchById<'b, A, Group<'a>, D>
-        + Create<A, Group<'a>, D>
-        + Create<A, GroupMember<'a, Cow<'a, Id>>, D>
-        + Delete<A, Group<'a>, D>,
+    for<'a, 'b> D: Database
+        + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>
+        + FetchAll<'a, 'b, A, GroupMember<'a, Entity<'a>>, Id, D>
+        + FetchByUid<'a, A, User<'a>, D>
+        + FetchById<'a, A, Group<'a>, D>
+        + Create<'a, A, Group<'a>, D>
+        + Create<'a, A, GroupMember<'a, Cow<'a, Id>>, D>
+        + Delete<'a, A, Group<'a>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {
@@ -49,16 +48,15 @@ where
 }
 
 #[inline]
-#[allow(single_use_lifetimes)]
 async fn index_method<A, D, T, R>(
     req: &mut R,
     res: response::Builder,
 ) -> Result<Response<ResponseType>, AppError<A, D, T, R>>
 where
     A: Auth,
-    for<'a, 'b, 'c> D: Database
-        + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>
-        + Create<A, Group<'a>, D>,
+    for<'a, 'b> D: Database
+        + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>
+        + Create<'a, A, Group<'a>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {
@@ -70,7 +68,6 @@ where
     }
 }
 
-#[allow(single_use_lifetimes)]
 async fn index_get<A, D, T, R>(
     req: &R,
     mut res: response::Builder,
@@ -79,7 +76,7 @@ async fn index_get<A, D, T, R>(
 ) -> Result<Response<ResponseType>, AppError<A, D, T, R>>
 where
     A: Auth,
-    for<'a, 'b, 'c> D: Database + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>,
+    for<'a, 'b> D: Database + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {
@@ -103,16 +100,15 @@ where
     serve_template(req, res, "site_groups", &container)
 }
 
-#[allow(single_use_lifetimes)]
 async fn index_post<A, D, T, R>(
     req: &mut R,
     res: response::Builder,
 ) -> Result<Response<ResponseType>, AppError<A, D, T, R>>
 where
     A: Auth,
-    for<'a, 'b, 'c> D: Database
-        + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>
-        + Create<A, Group<'a>, D>,
+    for<'a, 'b> D: Database
+        + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>
+        + Create<'a, A, Group<'a>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {
@@ -141,7 +137,6 @@ where
 }
 
 #[inline]
-#[allow(single_use_lifetimes)]
 async fn group_method<A, D, T, R>(
     req: &mut R,
     res: response::Builder,
@@ -149,14 +144,14 @@ async fn group_method<A, D, T, R>(
 ) -> Result<Response<ResponseType>, AppError<A, D, T, R>>
 where
     A: Auth,
-    for<'a, 'b, 'c> D: Database
-        + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>
-        + FetchAll<'b, A, GroupMember<'a, Entity<'a>>, Id, D>
-        + FetchByUid<A, User<'a>, D>
-        + FetchById<'b, A, Group<'a>, D>
-        + Create<A, Group<'a>, D>
-        + Create<A, GroupMember<'a, Cow<'a, Id>>, D>
-        + Delete<A, Group<'a>, D>,
+    for<'a, 'b> D: Database
+        + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>
+        + FetchAll<'a, 'b, A, GroupMember<'a, Entity<'a>>, Id, D>
+        + FetchByUid<'a, A, User<'a>, D>
+        + FetchById<'a, A, Group<'a>, D>
+        + Create<'a, A, Group<'a>, D>
+        + Create<'a, A, GroupMember<'a, Cow<'a, Id>>, D>
+        + Delete<'a, A, Group<'a>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {
@@ -168,7 +163,6 @@ where
     }
 }
 
-#[allow(single_use_lifetimes)]
 async fn group_get<A, D, T, R>(
     req: &R,
     mut res: response::Builder,
@@ -178,10 +172,10 @@ async fn group_get<A, D, T, R>(
 ) -> Result<Response<ResponseType>, AppError<A, D, T, R>>
 where
     A: Auth,
-    for<'a, 'b, 'c> D: Database
-        + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>
-        + FetchAll<'b, A, GroupMember<'a, Entity<'a>>, Id, D>
-        + FetchById<'b, A, Group<'a>, D>,
+    for<'a, 'b> D: Database
+        + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>
+        + FetchAll<'a, 'b, A, GroupMember<'a, Entity<'a>>, Id, D>
+        + FetchById<'a, A, Group<'a>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {
@@ -202,7 +196,6 @@ where
     serve_template(req, res, "site_group", &container)
 }
 
-#[allow(single_use_lifetimes)]
 async fn group_post<A, D, T, R>(
     req: &mut R,
     res: response::Builder,
@@ -210,13 +203,13 @@ async fn group_post<A, D, T, R>(
 ) -> Result<Response<ResponseType>, AppError<A, D, T, R>>
 where
     A: Auth,
-    for<'a, 'b, 'c> D: Database
-        + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>
-        + FetchAll<'b, A, GroupMember<'a, Entity<'a>>, Id, D>
-        + FetchByUid<A, User<'a>, D>
-        + FetchById<'b, A, Group<'a>, D>
-        + Delete<A, Group<'a>, D>
-        + Create<A, GroupMember<'a, Cow<'a, Id>>, D>,
+    for<'a, 'b> D: Database
+        + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>
+        + FetchAll<'a, 'b, A, GroupMember<'a, Entity<'a>>, Id, D>
+        + FetchByUid<'a, A, User<'a>, D>
+        + FetchById<'a, A, Group<'a>, D>
+        + Delete<'a, A, Group<'a>, D>
+        + Create<'a, A, GroupMember<'a, Cow<'a, Id>>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {
@@ -241,7 +234,7 @@ where
     let auth = req.get_auth();
     let db = req.get_database();
     let username = if let Some(uid) = body.0 {
-        db.fetch_by_uid(&uid, auth)?
+        db.fetch_by_uid(&uid, auth, PhantomData).await?
     } else {
         None
     };

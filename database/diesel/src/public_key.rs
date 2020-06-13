@@ -3,6 +3,7 @@ use crate::{
     schema::public_key, BinaryWrapper, DbWrapper, DieselDB, UniqueExtension,
 };
 use core_common::{
+    async_trait::async_trait,
     chrono::NaiveDateTime,
     database::{
         Create, Database, DatabaseError, DbList, DbResult, Delete, FetchAll,
@@ -11,6 +12,7 @@ use core_common::{
     objects::{Event, PublicKey, PublicKeyFilter},
     sec::Auth,
     serde_json::json,
+    tokio::task,
     types::{EventTypes, FingerprintMd5, FingerprintSha256, Id},
 };
 use diesel::{
@@ -26,7 +28,7 @@ use diesel::{
     Connection, ExpressionMethods, NullableExpressionMethods, OptionalExtension,
     QueryDsl, RunQueryDsl, TextExpressionMethods,
 };
-use std::{borrow::Cow, convert::AsRef};
+use std::{borrow::Cow, convert::AsRef, marker::PhantomData};
 
 #[derive(Debug, Clone, Queryable)]
 struct InnerPublicKey<'a> {
@@ -133,7 +135,8 @@ impl<'a> Into<PublicKey<'a>> for InnerPublicKey<'a> {
     }
 }
 
-impl<'a, B, C, A> FetchById<'_, A, PublicKey<'a>, Self> for DieselDB<C>
+#[async_trait]
+impl<'a, B, C, A> FetchById<'a, A, PublicKey<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -148,26 +151,39 @@ where
     NaiveDateTime: FromSql<Timestamp, B>,
 {
     #[inline]
-    fn fetch(&self, id: &Id, auth: &A) -> DbResult<Option<PublicKey<'a>>, Self> {
+    async fn fetch(
+        &self,
+        id: &Id,
+        auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<Option<PublicKey<'a>>, Self> {
         let res: Option<InnerPublicKey<'_>>;
-        let conn = self.get()?;
 
         let query = public_key::dsl::public_key
             .select(InnerPublicKey::keys())
             .find(BinaryWrapper(id))
             .filter(public_key::active.eq(true));
+
         res = if auth.is_admin() {
-            exec_opt!(query, conn, first)
+            task::block_in_place(|| {
+                let conn = self.get()?;
+                exec_opt!(query, conn, first)
+            })
         } else {
             let eid = BinaryWrapper(auth.get_id());
             let query = query.filter(public_key::entity_id.eq(eid));
-            exec_opt!(query, conn, first)
+            task::block_in_place(|| {
+                let conn = self.get()?;
+                exec_opt!(query, conn, first)
+            })
         }?;
         Ok(res.map(|v| v.into()))
     }
 }
 
-impl<'a, 'b, B, C, A> FetchAll<'a, A, PublicKey<'b>, PublicKeyFilter<'_>, Self>
+#[allow(unused_lifetimes)]
+#[async_trait]
+impl<'a, 'b, B, C, A> FetchAll<'a, 'b, A, PublicKey<'a>, PublicKeyFilter<'b>, Self>
     for DieselDB<C>
 where
     A: Auth,
@@ -183,15 +199,13 @@ where
     NaiveDateTime: FromSql<Timestamp, B>,
 {
     #[inline]
-    fn fetch_all(
+    async fn fetch_all(
         &self,
-        filter: &'a PublicKeyFilter<'_>,
-        auth: &'a A,
+        filter: &PublicKeyFilter<'b>,
+        auth: &A,
         page: usize,
-    ) -> DbResult<DbList<PublicKey<'b>>, Self> {
-        let res: Vec<InnerPublicKey<'b>>;
-        let conn = self.get()?;
-
+        _: PhantomData<(&'a (), &'b ())>,
+    ) -> DbResult<DbList<PublicKey<'a>>, Self> {
         let offset = Self::compute_offset(page);
 
         let entity_id = if auth.is_admin() {
@@ -204,8 +218,6 @@ where
             .select(count_star())
             .into_boxed::<B>();
         let count_query = InnerPublicKey::filter(count_query, filter, entity_id);
-        let count = Self::compute_count(exec!(count_query, conn, first)?);
-        let page_max = Self::compute_page_max(count);
 
         let query = public_key::dsl::public_key
             .select(InnerPublicKey::keys())
@@ -213,7 +225,16 @@ where
             .offset(offset)
             .into_boxed::<B>();
         let query = InnerPublicKey::filter(query, filter, entity_id);
-        res = exec!(query, conn, load)?;
+
+        let (count, res) = task::block_in_place(|| {
+            let conn = self.get()?;
+            let count = exec!(count_query, conn, first)?;
+            let res: Vec<InnerPublicKey<'a>> = exec!(query, conn, load)?;
+            Ok((count, res))
+        })?;
+
+        let count = Self::compute_count(count);
+        let page_max = Self::compute_page_max(count);
 
         Ok(DbList {
             data: res.into_iter().map(|v| v.into()).collect(),
@@ -224,8 +245,10 @@ where
     }
 }
 
-impl<'a, B, C, A> FetchAllFor<A, PublicKey<'a>, PublicKeyFilter<'_>, Self>
-    for DieselDB<C>
+#[allow(unused_lifetimes)]
+#[async_trait]
+impl<'a, 'b, B, C, A>
+    FetchAllFor<'a, 'b, A, PublicKey<'a>, PublicKeyFilter<'b>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -240,14 +263,13 @@ where
     NaiveDateTime: FromSql<Timestamp, B>,
 {
     #[inline]
-    fn fetch_all_for(
+    async fn fetch_all_for(
         &self,
-        filter: &PublicKeyFilter<'_>,
+        filter: &PublicKeyFilter<'b>,
         auth: &A,
         page: usize,
+        _: PhantomData<(&'a (), &'b ())>,
     ) -> DbResult<DbList<PublicKey<'a>>, Self> {
-        let res: Vec<InnerPublicKey<'a>>;
-        let conn = self.get()?;
         let entity_id = Some(auth.get_id());
 
         let offset = Self::compute_offset(page);
@@ -256,8 +278,6 @@ where
             .select(count_star())
             .into_boxed::<B>();
         let count_query = InnerPublicKey::filter(count_query, filter, entity_id);
-        let count = Self::compute_count(exec!(count_query, conn, first)?);
-        let page_max = Self::compute_page_max(count);
 
         let query = public_key::dsl::public_key
             .select(InnerPublicKey::keys())
@@ -265,7 +285,16 @@ where
             .offset(offset)
             .into_boxed::<B>();
         let query = InnerPublicKey::filter(query, filter, entity_id);
-        res = exec!(query, conn, load)?;
+
+        let (count, res) = task::block_in_place(|| {
+            let conn = self.get()?;
+            let count = exec!(count_query, conn, first)?;
+            let res: Vec<InnerPublicKey<'a>> = exec!(query, conn, load)?;
+            Ok((count, res))
+        })?;
+
+        let count = Self::compute_count(count);
+        let page_max = Self::compute_page_max(count);
 
         Ok(DbList {
             data: res.into_iter().map(|v| v.into()).collect(),
@@ -276,7 +305,9 @@ where
     }
 }
 
-impl<'a, A, B, C: 'static + Connection> Create<A, PublicKey<'a>, Self>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C: 'static + Connection> Create<'a, A, PublicKey<'a>, Self>
     for DieselDB<C>
 where
     A: Auth,
@@ -290,8 +321,12 @@ where
         + Migrate,
 {
     #[inline]
-    fn create(&self, object: &PublicKey<'a>, auth: &A) -> DbResult<(), Self> {
-        let conn = self.get()?;
+    async fn create(
+        &self,
+        object: &PublicKey<'a>,
+        auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
         let query = insert_into(public_key::dsl::public_key).values((
             public_key::id.eq(BinaryWrapper(&object.id)),
             public_key::entity_id.eq(BinaryWrapper(&object.entity_id)),
@@ -306,7 +341,10 @@ where
             public_key::randomart_md5.eq(&object.randomart_md5),
             public_key::randomart_sha256.eq(&object.randomart_sha256),
         ));
-        let res = exec_unique!(query, conn, execute).map(|_| ());
+        let res = task::block_in_place(|| {
+            let conn = self.get()?;
+            exec_unique!(query, conn, execute).map(|_| ())
+        });
         if let DbResult::Ok(_) = res {
             let details = Cow::Owned(
                 json!({
@@ -317,20 +355,22 @@ where
                 .to_string(),
             );
             let event: Event<'_> = Event {
-                id: Cow::Owned(self.generate_id()?),
+                id: Cow::Owned(self.generate_id().await?),
                 actor_id: Some(Cow::Borrowed(auth.get_id())),
                 date: None,
                 details,
                 type_: EventTypes::Entity,
                 object_id: Some(Cow::Borrowed(&object.entity_id)),
             };
-            self.create(&event, auth)?;
+            self.create(&event, auth, PhantomData).await?;
         }
         res
     }
 }
 
-impl<A, B, C> Delete<A, PublicKey<'_>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C> Delete<'a, A, PublicKey<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -345,8 +385,12 @@ where
     bool: ToSql<Bool, B>,
 {
     #[inline]
-    fn delete(&self, ids: &[Id], auth: &A) -> DbResult<(), Self> {
-        let conn = self.get()?;
+    async fn delete(
+        &self,
+        ids: &[Id],
+        auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
         let ids: Vec<BinaryWrapper<&Id>> = ids.iter().map(BinaryWrapper).collect();
 
         let mut query = diesel::update(public_key::dsl::public_key)
@@ -358,7 +402,10 @@ where
             query =
                 query.filter(public_key::entity_id.eq(BinaryWrapper(auth.get_id())));
         }
-        let _ = exec!(query, conn, execute)?;
+        let _ = task::block_in_place(|| {
+            let conn = self.get()?;
+            exec!(query, conn, execute)
+        })?;
         Ok(())
     }
 }

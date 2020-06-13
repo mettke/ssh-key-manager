@@ -9,7 +9,7 @@ use core_common::{
     types::Id,
     web::{AppError, Notification, Request, TemplateEngine},
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, marker::PhantomData};
 
 /// A List of public keys ready to be presented
 #[derive(Debug)]
@@ -21,22 +21,23 @@ impl<'a> PublicKeyListView<'a> {
     /// # Errors
     /// Fails when database connection fails
     #[inline]
-    #[allow(unused_lifetimes, single_use_lifetimes)]
+    #[allow(unused_lifetimes)]
     pub async fn fetch<A, D, T, R>(
         req: &R,
         filter: &PublicKeyFilter<'_>,
     ) -> Result<PublicKeyListView<'a>, AppError<A, D, T, R>>
     where
         A: Auth,
-        for<'b, 'c> D:
-            Database + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>,
+        for<'b> D:
+            Database + FetchAll<'a, 'b, A, PublicKey<'a>, PublicKeyFilter<'b>, D>,
         T: TemplateEngine,
         R: Request<A, D, T>,
     {
         let auth = req.get_auth();
         let db = req.get_database();
 
-        db.fetch_all(filter, auth, 0)
+        db.fetch_all(filter, auth, 0, PhantomData)
+            .await
             .map(Self)
             .map_err(AppError::DatabaseError)
     }
@@ -46,7 +47,7 @@ impl<'a> PublicKeyListView<'a> {
     /// # Errors
     /// Fails when database connection fails
     #[inline]
-    #[allow(unused_lifetimes, single_use_lifetimes, clippy::needless_lifetimes)]
+    #[allow(unused_lifetimes, clippy::needless_lifetimes)]
     pub async fn create<'e, A, D, T, R>(
         req: &mut R,
         data: Option<Cow<'_, str>>,
@@ -55,10 +56,10 @@ impl<'a> PublicKeyListView<'a> {
     ) -> Result<[Notification<'e>; 1], AppError<A, D, T, R>>
     where
         A: Auth,
-        for<'b, 'c, 'd> D: Database
-            + FetchAll<'b, A, PublicKey<'d>, PublicKeyFilter<'c>, D>
-            + FetchByUid<A, User<'d>, D>
-            + Create<A, PublicKey<'d>, D>,
+        for<'b, 'c> D: Database
+            + FetchAll<'b, 'c, A, PublicKey<'b>, PublicKeyFilter<'c>, D>
+            + FetchByUid<'b, A, User<'b>, D>
+            + Create<'b, A, PublicKey<'b>, D>,
         T: TemplateEngine,
         R: Request<A, D, T>,
     {
@@ -72,7 +73,7 @@ impl<'a> PublicKeyListView<'a> {
         let db = req.get_database();
         let auth = req.get_auth();
         let body = if let (Some(data), Some(uid)) = (data.as_ref(), uid) {
-            match PublicKey::parse(data, &uid.entity_id, db) {
+            match PublicKey::parse(data, &uid.entity_id, db).await {
                 Err(PublicKeyConversionError::DatabaseError(err)) => {
                     return Err(AppError::DatabaseError(err));
                 }
@@ -86,7 +87,7 @@ impl<'a> PublicKeyListView<'a> {
             (None, None)
         };
         match body {
-            (Some(key), Some(_)) => match db.create(&key, auth) {
+            (Some(key), Some(_)) => match db.create(&key, auth, PhantomData).await {
                 Err(err @ DatabaseError::Custom(_)) => {
                     Err(AppError::DatabaseError(err))
                 }
@@ -133,7 +134,7 @@ impl PublicKeyView<'_> {
     /// # Errors
     /// Fails when database connection fails
     #[inline]
-    #[allow(unused_lifetimes, single_use_lifetimes)]
+    #[allow(unused_lifetimes)]
     pub async fn fetch<'a, A, D, T, R>(
         req: &R,
         key: &str,
@@ -141,8 +142,8 @@ impl PublicKeyView<'_> {
     where
         A: Auth,
         for<'b> D: Database
-            + FetchById<'b, A, PublicKey<'a>, D>
-            + FetchById<'b, A, Entity<'a>, D>,
+            + FetchById<'a, A, PublicKey<'a>, D>
+            + FetchById<'a, A, Entity<'a>, D>,
         T: TemplateEngine,
         R: Request<A, D, T>,
     {
@@ -156,9 +157,11 @@ impl PublicKeyView<'_> {
             Ok(id) => id,
         };
 
-        let public_key: Option<PublicKey<'_>> = db.fetch(&id, auth)?;
+        let public_key: Option<PublicKey<'_>> =
+            db.fetch(&id, auth, PhantomData).await?;
         if let Some(public_key) = public_key {
-            let owner: Option<Entity<'_>> = db.fetch(&public_key.entity_id, auth)?;
+            let owner: Option<Entity<'_>> =
+                db.fetch(&public_key.entity_id, auth, PhantomData).await?;
             let owner = owner.unwrap_or_else(|| Entity {
                 entity_id: public_key.entity_id.clone(),
                 name: None,

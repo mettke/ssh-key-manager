@@ -1,11 +1,13 @@
 use crate::{
+    async_trait::async_trait,
     database::{Database, DbResult},
     sec::Auth,
     types::Id,
 };
+use std::marker::PhantomData;
 
 /// Allows fetching a single Object
-#[allow(single_use_lifetimes)]
+#[async_trait]
 pub trait FetchById<'a, A: Auth, T, D: Database>: Sized {
     /// Fetches a single Object using its Id.
     /// Returns `Ok(None)` if there is no object with that id
@@ -14,5 +16,10 @@ pub trait FetchById<'a, A: Auth, T, D: Database>: Sized {
     /// # Errors
     /// Fails only on connection or deserialisation errors.
     /// May not fail on input errors.
-    fn fetch(&self, id: &'a Id, auth: &A) -> DbResult<Option<T>, D>;
+    async fn fetch(
+        &self,
+        id: &Id,
+        auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<Option<T>, D>;
 }

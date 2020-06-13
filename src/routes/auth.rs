@@ -15,9 +15,9 @@ pub async fn index<A, D, T, R>(
 where
     A: Auth,
     for<'a> D: Database
-        + FetchByUid<PreAuth, User<'a>, D>
-        + Create<PreAuth, User<'a>, D>
-        + Save<PreAuth, User<'a>, D>,
+        + FetchByUid<'a, PreAuth, User<'a>, D>
+        + Create<'a, PreAuth, User<'a>, D>
+        + Save<'a, PreAuth, User<'a>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {

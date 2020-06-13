@@ -1,16 +1,17 @@
-use crate::{database::DatabaseError, types::Id};
+use crate::{async_trait::async_trait, database::DatabaseError, types::Id};
 use std::{borrow::Cow, error, fmt::Debug};
 
 /// Common methods for Database Implementations
+#[async_trait]
 pub trait Database: Sized + Send + Sync + Debug {
     /// the custom error for the template engine.
-    type DatabaseError: error::Error;
+    type DatabaseError: error::Error + Send + Sync;
 
     /// Generates an id
     ///
     /// # Errors
     /// Fails on connection or deserialisation errors.
-    fn generate_id(&self) -> Result<Id, DatabaseError<Self>>;
+    async fn generate_id(&self) -> Result<Id, DatabaseError<Self>>;
 
     /// Fetches a permission id array from the database for an entity
     /// The Array contains the id of the entity itself and all the
@@ -18,7 +19,7 @@ pub trait Database: Sized + Send + Sync + Debug {
     ///
     /// # Errors
     /// Fails on connection or deserialisation errors.
-    fn fetch_permission_ids<'a>(
+    async fn fetch_permission_ids<'a>(
         &self,
         entity_id: Cow<'a, Id>,
     ) -> Result<Vec<Cow<'a, Id>>, DatabaseError<Self>>;

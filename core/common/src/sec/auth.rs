@@ -30,9 +30,9 @@ pub trait Auth: Sized + Send + Sync + fmt::Debug {
     ) -> Option<Self>
     where
         for<'a> D: Database
-            + FetchByUid<PreAuth, User<'a>, D>
-            + Create<PreAuth, User<'a>, D>
-            + Save<PreAuth, User<'a>, D>,
+            + FetchByUid<'a, PreAuth, User<'a>, D>
+            + Create<'a, PreAuth, User<'a>, D>
+            + Save<'a, PreAuth, User<'a>, D>,
         T: TemplateEngine,
         R: Request<Self, D, T> + Sync;
 
@@ -43,7 +43,7 @@ pub trait Auth: Sized + Send + Sync + fmt::Debug {
     ///
     /// # Errors
     /// Fail when the communication with the database fails
-    fn create<D, T, R>(
+    async fn create<D, T, R>(
         req: &R,
         username: String,
         name: &str,
@@ -53,9 +53,9 @@ pub trait Auth: Sized + Send + Sync + fmt::Debug {
     ) -> Result<Option<Self>, AppError<Self, D, T, R>>
     where
         for<'a> D: Database
-            + FetchByUid<PreAuth, User<'a>, D>
-            + Create<PreAuth, User<'a>, D>
-            + Save<PreAuth, User<'a>, D>,
+            + FetchByUid<'a, PreAuth, User<'a>, D>
+            + Create<'a, PreAuth, User<'a>, D>
+            + Save<'a, PreAuth, User<'a>, D>,
         T: TemplateEngine,
         R: Request<Self, D, T>;
 
@@ -117,9 +117,9 @@ impl Auth for PreAuth {
     async fn authenticate<D, T, R>(_: &R, _: &mut response::Builder) -> Option<Self>
     where
         for<'a> D: Database
-            + FetchByUid<PreAuth, User<'a>, D>
-            + Create<PreAuth, User<'a>, D>
-            + Save<PreAuth, User<'a>, D>,
+            + FetchByUid<'a, PreAuth, User<'a>, D>
+            + Create<'a, PreAuth, User<'a>, D>
+            + Save<'a, PreAuth, User<'a>, D>,
         T: TemplateEngine,
         R: Request<Self, D, T> + Sync,
     {
@@ -127,7 +127,7 @@ impl Auth for PreAuth {
     }
 
     #[inline]
-    fn create<D, T, R>(
+    async fn create<D, T, R>(
         _req: &R,
         _username: String,
         _name: &str,

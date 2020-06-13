@@ -15,7 +15,7 @@
     missing_doc_code_examples,
     non_ascii_idents,
     private_doc_tests,
-    single_use_lifetimes,
+    // single_use_lifetimes,
     trivial_casts,
     trivial_numeric_casts,
     unsafe_code,
@@ -157,30 +157,29 @@ async fn main() {
     }
 }
 
-#[allow(single_use_lifetimes)]
 async fn build_server<A, D, T>(
     args: &CliArguments,
     database: Arc<D>,
     templates: Arc<T>,
 ) where
     A: 'static + Auth,
-    for<'a, 'b, 'c> D: 'static
+    for<'a, 'b> D: 'static
         + Database
-        + FetchByUid<PreAuth, User<'a>, D>
-        + FetchByUid<A, User<'a>, D>
-        + FetchById<'b, A, PublicKey<'a>, D>
-        + FetchById<'b, A, Entity<'a>, D>
-        + FetchById<'b, A, Group<'a>, D>
-        + Create<PreAuth, User<'a>, D>
-        + Create<A, PublicKey<'a>, D>
-        + Create<A, Group<'a>, D>
-        + Create<A, GroupMember<'a, Cow<'a, Id>>, D>
-        + Delete<A, PublicKey<'a>, D>
-        + Delete<A, Group<'a>, D>
-        + Save<PreAuth, User<'a>, D>
-        + FetchAll<'b, A, PublicKey<'a>, PublicKeyFilter<'c>, D>
-        + FetchAll<'b, A, Group<'a>, GroupFilter<'c>, D>
-        + FetchAll<'b, A, GroupMember<'a, Entity<'a>>, Id, D>,
+        + FetchByUid<'a, PreAuth, User<'a>, D>
+        + FetchByUid<'a, A, User<'a>, D>
+        + FetchById<'a, A, PublicKey<'a>, D>
+        + FetchById<'a, A, Entity<'a>, D>
+        + FetchById<'a, A, Group<'a>, D>
+        + Create<'a, PreAuth, User<'a>, D>
+        + Create<'a, A, PublicKey<'a>, D>
+        + Create<'a, A, Group<'a>, D>
+        + Create<'a, A, GroupMember<'a, Cow<'a, Id>>, D>
+        + Delete<'a, A, PublicKey<'a>, D>
+        + Delete<'a, A, Group<'a>, D>
+        + Save<'a, PreAuth, User<'a>, D>
+        + FetchAll<'a, 'b, A, PublicKey<'a>, PublicKeyFilter<'b>, D>
+        + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>
+        + FetchAll<'a, 'b, A, GroupMember<'a, Entity<'a>>, Id, D>,
     T: 'static + TemplateEngine,
 {
     let oauth = if let AuthType::OAuth(ref oauth) = args.auth_type {

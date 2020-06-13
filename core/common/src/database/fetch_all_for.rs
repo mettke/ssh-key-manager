@@ -1,10 +1,13 @@
 use crate::{
+    async_trait::async_trait,
     database::{Database, DbList, DbResult},
     sec::Auth,
 };
+use std::marker::PhantomData;
 
 /// Allows fetching multiple Objects using a Filter
-pub trait FetchAllFor<A: Auth, T, F, D: Database>: Sized {
+#[async_trait]
+pub trait FetchAllFor<'a, 'b, A: Auth, T, F, D: Database>: Sized {
     /// Fetches multiple objects using a Filter.
     /// Returns an empty array if there are no objects
     /// or when the user is not allowed to view given object.
@@ -13,10 +16,11 @@ pub trait FetchAllFor<A: Auth, T, F, D: Database>: Sized {
     /// # Errors
     /// Fails only on connection or deserialisation errors.
     /// May not fail on input errors.
-    fn fetch_all_for(
+    async fn fetch_all_for(
         &self,
         filter: &F,
         auth: &A,
         page: usize,
+        _: PhantomData<(&'a (), &'b ())>,
     ) -> DbResult<DbList<T>, D>;
 }

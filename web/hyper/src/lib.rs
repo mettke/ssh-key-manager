@@ -17,7 +17,7 @@
     missing_doc_code_examples,
     non_ascii_idents,
     private_doc_tests,
-    single_use_lifetimes,
+    // single_use_lifetimes,
     trivial_casts,
     trivial_numeric_casts,
     unreachable_pub,

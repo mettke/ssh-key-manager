@@ -33,7 +33,6 @@ impl error::Error for FingerprintConversionError {
 
 /// Sha256 Fingerprint of a Server. The string representation contains bytes in the
 /// hexadecimal format. Any non valid hex character may be used as seperator
-#[allow(single_use_lifetimes)]
 #[derive(Debug, Clone, Eq)]
 pub struct FingerprintMd5<'a> {
     bytes: Cow<'a, [u8]>,
@@ -175,7 +174,6 @@ impl Serialize for FingerprintMd5<'_> {
 
 /// Sha256 Fingerprint of a Server. The string representation
 /// is base64 encoded
-#[allow(single_use_lifetimes)]
 #[derive(Debug, Clone, Eq)]
 pub struct FingerprintSha256<'a> {
     bytes: Cow<'a, [u8]>,

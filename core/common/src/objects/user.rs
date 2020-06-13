@@ -4,7 +4,7 @@ use crate::{
     serde::Serialize,
     types::{Id, UserTypes},
 };
-use std::{borrow::Cow, convert::TryFrom};
+use std::{borrow::Cow, convert::TryFrom, marker::PhantomData};
 
 #[derive(Debug, Clone, Hash, Serialize)]
 /// Defines the User structure in the database
@@ -23,6 +23,7 @@ pub struct User<'a> {
     pub type_: UserTypes,
 }
 
+#[allow(unused_lifetimes)]
 impl<'a> User<'a> {
     /// Checks whether a user already exists and updated it if necessary.
     /// If the user does not exist, it will be created and returned
@@ -31,28 +32,28 @@ impl<'a> User<'a> {
     /// Fails only on connection or deserialisation errors.
     /// Does not fail on input errors.
     #[inline]
-    pub fn update_or_create_user<D, A>(
+    pub async fn update_or_create_user<'b, D, A>(
         db: &D,
         auth: &A,
-        uid: &'a str,
-        name: &'a str,
-        email: &'a str,
+        uid: &'b str,
+        name: &'b str,
+        email: &'b str,
         type_: UserTypes,
-    ) -> DbResult<Self, D>
+    ) -> DbResult<User<'b>, D>
     where
         A: Auth,
         D: Database
-            + FetchByUid<A, User<'a>, D>
-            + Create<A, User<'a>, D>
-            + Save<A, User<'a>, D>,
+            + FetchByUid<'b, A, User<'b>, D>
+            + Create<'b, A, User<'b>, D>
+            + Save<'b, A, User<'b>, D>,
     {
-        if let Some(mut user) = db.fetch_by_uid(uid, auth)? {
+        if let Some(mut user) = db.fetch_by_uid(uid, auth, PhantomData).await? {
             if user.requires_update(name, email, type_) {
-                db.save(&user, auth)?;
+                db.save(&user, auth, PhantomData).await?;
             }
             Ok(user)
         } else {
-            let id = db.generate_id()?;
+            let id = db.generate_id().await?;
             let user = User {
                 entity_id: Cow::Owned(id),
                 uid: Cow::Borrowed(uid),
@@ -61,7 +62,7 @@ impl<'a> User<'a> {
                 password: None,
                 type_,
             };
-            db.create(&user, auth)?;
+            db.create(&user, auth, PhantomData).await?;
             Ok(user)
         }
     }

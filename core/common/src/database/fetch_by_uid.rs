@@ -1,11 +1,13 @@
 use crate::{
+    async_trait::async_trait,
     database::{Database, DbResult},
     sec::Auth,
 };
+use std::marker::PhantomData;
 
 /// Allows fetching a single Object
-#[allow(single_use_lifetimes)]
-pub trait FetchByUid<A: Auth, T, D: Database>: Sized {
+#[async_trait]
+pub trait FetchByUid<'a, A: Auth, T, D: Database>: Sized {
     /// Fetches a single Object using its uid.
     /// Returns `Ok(None)` if there is no object with that uid
     /// or when the user is not allowed to view given object.
@@ -13,5 +15,10 @@ pub trait FetchByUid<A: Auth, T, D: Database>: Sized {
     /// # Errors
     /// Fails only on connection or deserialisation errors.
     /// May not fail on input errors.
-    fn fetch_by_uid(&self, uid: &str, auth: &A) -> DbResult<Option<T>, D>;
+    async fn fetch_by_uid(
+        &self,
+        uid: &str,
+        auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<Option<T>, D>;
 }

@@ -44,7 +44,7 @@ pub struct PublicKey<'a> {
     pub upload_date: Option<NaiveDateTime>,
 }
 
-impl<'a> PublicKey<'a> {
+impl PublicKey<'_> {
     #[must_use]
     #[inline]
     /// Converts the key to its openssh authorized keys representation
@@ -64,26 +64,27 @@ impl<'a> PublicKey<'a> {
     /// # Errors
     /// Fails if key is not in the openssh `authorized_keys` format or when the
     /// database cannot create an uuid
+    #[allow(clippy::needless_lifetimes)]
     #[inline]
-    pub fn parse<D: Database>(
+    pub async fn parse<'a, D: Database>(
         data: &str,
         owner: &'a Id,
         db: &D,
-    ) -> Result<Self, PublicKeyConversionError<D>> {
-        openssh_keys::PublicKey::parse(data)
-            .map_err(PublicKeyConversionError::OpenSshError)
-            .and_then(|key| {
-                Self::from_openssh(&key, owner, db)
-                    .map_err(PublicKeyConversionError::DatabaseError)
-            })
+    ) -> Result<PublicKey<'a>, PublicKeyConversionError<D>> {
+        let key = openssh_keys::PublicKey::parse(data)
+            .map_err(PublicKeyConversionError::OpenSshError)?;
+        Self::from_openssh(&key, owner, db)
+            .await
+            .map_err(PublicKeyConversionError::DatabaseError)
     }
 
-    fn from_openssh<D: Database>(
+    #[allow(clippy::needless_lifetimes)]
+    async fn from_openssh<'a, D: Database>(
         value: &openssh_keys::PublicKey,
         owner: &'a Id,
         db: &D,
-    ) -> Result<Self, DatabaseError<D>> {
-        let id = Cow::Owned(db.generate_id()?);
+    ) -> Result<PublicKey<'a>, DatabaseError<D>> {
+        let id = Cow::Owned(db.generate_id().await?);
         let entity_id = Cow::Borrowed(owner);
         let type_ = Cow::Owned(value.keytype().into());
         let keydata = Cow::Owned(base64::encode(value.data()));
@@ -105,7 +106,7 @@ impl<'a> PublicKey<'a> {
             .map(|f| Self::create_randomart_sha256(value, f))
             .map(Cow::Owned);
 
-        Ok(Self {
+        Ok(PublicKey {
             id,
             entity_id,
             type_,

@@ -7,10 +7,12 @@ use crate::{
     BinaryWrapper, DbWrapper, DieselDB,
 };
 use core_common::{
+    async_trait::async_trait,
     chrono::NaiveDateTime,
     database::{Create, DatabaseError, DbList, DbResult, FetchAll},
     objects::{Entity, GroupMember},
     sec::Auth,
+    tokio::task,
     types::{EntityTypes, Id},
 };
 use diesel::{
@@ -24,7 +26,7 @@ use diesel::{
     Connection, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl,
     Queryable, RunQueryDsl,
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, marker::PhantomData};
 
 #[derive(Debug, Clone, Queryable)]
 struct InnerGroupMember<'a> {
@@ -87,8 +89,9 @@ impl<'a> Into<GroupMember<'a, Entity<'a>>> for InnerGroupMember<'a> {
     }
 }
 
-#[allow(clippy::type_repetition_in_bounds)]
-impl<'a, B, C, A> FetchAll<'_, A, GroupMember<'a, Entity<'a>>, Id, Self>
+#[allow(clippy::type_repetition_in_bounds, unused_lifetimes)]
+#[async_trait]
+impl<'a, 'b, B, C, A> FetchAll<'a, 'b, A, GroupMember<'a, Entity<'a>>, Id, Self>
     for DieselDB<C>
 where
     A: Auth,
@@ -106,14 +109,14 @@ where
     NaiveDateTime: FromSql<Timestamp, B>,
 {
     #[inline]
-    fn fetch_all(
+    async fn fetch_all(
         &self,
         filter: &Id,
         _auth: &A,
         _page: usize,
+        _: PhantomData<(&'a (), &'b ())>,
     ) -> DbResult<DbList<GroupMember<'a, Entity<'a>>>, Self> {
         let res: Vec<InnerGroupMember<'a>>;
-        let conn = self.get()?;
 
         let query = group_member::dsl::group_member
             .inner_join(
@@ -130,7 +133,11 @@ where
             )
             .select(InnerGroupMember::keys())
             .filter(group_member::group_id.eq(BinaryWrapper(filter)));
-        res = exec!(query, conn, load)?;
+
+        res = task::block_in_place(|| {
+            let conn = self.get()?;
+            exec!(query, conn, load)
+        })?;
 
         let count = res.len();
         Ok(DbList {
@@ -142,8 +149,10 @@ where
     }
 }
 
-impl<'a, A, B, C: 'static + Connection> Create<A, GroupMember<'a, Cow<'a, Id>>, Self>
-    for DieselDB<C>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C: 'static + Connection>
+    Create<'a, A, GroupMember<'a, Cow<'a, Id>>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -156,19 +165,22 @@ where
     NaiveDateTime: ToSql<Timestamp, B>,
 {
     #[inline]
-    fn create(
+    async fn create(
         &self,
         object: &GroupMember<'a, Cow<'a, Id>>,
         auth: &A,
+        _: PhantomData<&'a ()>,
     ) -> DbResult<(), Self> {
-        let conn = self.get()?;
         let query = insert_into(group_member::dsl::group_member).values((
             group_member::group_id.eq(BinaryWrapper(&object.group_id)),
             group_member::member_id.eq(BinaryWrapper(&object.member)),
             group_member::add_date.eq(&object.add_date),
             group_member::added_by.eq(BinaryWrapper(auth.get_id())),
         ));
-        exec_unique!(query, conn, execute).map(|_| ())
+        task::block_in_place(|| {
+            let conn = self.get()?;
+            exec_unique!(query, conn, execute).map(|_| ())
+        })
         // if let DbResult::Ok(_) = res {
         //     let details = Cow::Owned(
         //         json!({

@@ -168,9 +168,9 @@ impl<A, D, T> Server<A, D, T, HyperRequest<A, D, T>> for HyperServer<A, D, T>
 where
     A: Auth,
     for<'a> D: Database
-        + FetchByUid<PreAuth, User<'a>, D>
-        + Create<PreAuth, User<'a>, D>
-        + Save<PreAuth, User<'a>, D>,
+        + FetchByUid<'a, PreAuth, User<'a>, D>
+        + Create<'a, PreAuth, User<'a>, D>
+        + Save<'a, PreAuth, User<'a>, D>,
     T: 'static + TemplateEngine,
 {
     type ServerError = HyperError;

@@ -1,3 +1,4 @@
+use core_common::tokio::task::JoinError;
 use std::{error, fmt};
 
 /// Diesel Error happening when communication with a database
@@ -13,6 +14,8 @@ pub enum DieselError {
     R2D2Error(r2d2::Error),
     /// Error while trying to migrate database
     MigrationError(diesel_migrations::RunMigrationsError),
+    /// Internal Async Execution failed
+    JoinError(JoinError),
 }
 
 impl fmt::Display for DieselError {
@@ -30,6 +33,9 @@ impl fmt::Display for DieselError {
             Self::MigrationError(err) => {
                 write!(f, "Error while migrating Database: {}", err)
             }
+            Self::JoinError(err) => {
+                write!(f, "Failed while trying to execute blocking thread: {}", err)
+            }
         }
     }
 }
@@ -42,6 +48,7 @@ impl error::Error for DieselError {
             Self::DieselError(err) => Some(err),
             Self::R2D2Error(err) => Some(err),
             Self::MigrationError(err) => Some(err),
+            Self::JoinError(err) => Some(err),
         }
     }
 }

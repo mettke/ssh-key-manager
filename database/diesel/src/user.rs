@@ -6,12 +6,14 @@ use crate::{
     BinaryWrapper, DbWrapper, DieselDB, UniqueExtension,
 };
 use core_common::{
+    async_trait::async_trait,
     database::{
         Create, DatabaseError, DbList, DbResult, Delete, FetchAll, FetchById,
         FetchByUid, Save,
     },
     objects::{User, UserFilter},
     sec::Auth,
+    tokio::task,
     types::{EntityTypes, Id, UserTypes},
 };
 use diesel::{
@@ -26,7 +28,7 @@ use diesel::{
     update, Connection, ExpressionMethods, OptionalExtension, QueryDsl, Queryable,
     RunQueryDsl, TextExpressionMethods,
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, marker::PhantomData};
 
 #[derive(Debug, Clone, Queryable)]
 struct InnerUser<'a> {
@@ -103,7 +105,8 @@ impl<'a> Into<User<'a>> for InnerUser<'a> {
 }
 
 #[allow(clippy::type_repetition_in_bounds)]
-impl<'a, B, C, A> FetchById<'_, A, User<'a>, Self> for DieselDB<C>
+#[async_trait]
+impl<'a, B, C, A> FetchById<'a, A, User<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -119,20 +122,28 @@ where
     DbWrapper<UserTypes>: Queryable<DbWrapper<UserTypes>, B>,
 {
     #[inline]
-    fn fetch(&self, id: &Id, _auth: &A) -> DbResult<Option<User<'a>>, Self> {
+    async fn fetch(
+        &self,
+        id: &Id,
+        _auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<Option<User<'a>>, Self> {
         let res: Option<InnerUser<'a>>;
-        let conn = self.get()?;
 
         let query = users::dsl::users
             .select(InnerUser::keys())
             .find(BinaryWrapper(id));
-        res = exec_opt!(query, conn, first)?;
+        res = task::block_in_place(|| {
+            let conn = self.get()?;
+            exec_opt!(query, conn, first)
+        })?;
         Ok(res.map(|v| v.into()))
     }
 }
 
 #[allow(clippy::type_repetition_in_bounds)]
-impl<'a, B, C, A> FetchByUid<A, User<'a>, Self> for DieselDB<C>
+#[async_trait]
+impl<'a, B, C, A> FetchByUid<'a, A, User<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -148,24 +159,29 @@ where
     DbWrapper<UserTypes>: Queryable<DbWrapper<UserTypes>, B>,
 {
     #[inline]
-    fn fetch_by_uid(
+    async fn fetch_by_uid(
         &self,
         uid: &str,
         _auth: &A,
+        _: PhantomData<&'a ()>,
     ) -> DbResult<Option<User<'a>>, Self> {
         let res: Option<InnerUser<'a>>;
-        let conn = self.get()?;
 
         let query = users::dsl::users
             .select(InnerUser::keys())
             .filter(users::uid.eq(uid));
-        res = exec_opt!(query, conn, first)?;
+        res = task::block_in_place(|| {
+            let conn = self.get()?;
+            exec_opt!(query, conn, first)
+        })?;
         Ok(res.map(|v| v.into()))
     }
 }
 
-#[allow(clippy::type_repetition_in_bounds)]
-impl<'a, B, C, A> FetchAll<'_, A, User<'a>, UserFilter<'_>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(clippy::type_repetition_in_bounds, unused_lifetimes)]
+impl<'a, 'b, B, C, A> FetchAll<'a, 'b, A, User<'a>, UserFilter<'b>, Self>
+    for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -181,15 +197,13 @@ where
     DbWrapper<UserTypes>: Queryable<DbWrapper<UserTypes>, B>,
 {
     #[inline]
-    fn fetch_all(
+    async fn fetch_all(
         &self,
-        filter: &UserFilter<'_>,
+        filter: &UserFilter<'b>,
         auth: &A,
         page: usize,
+        _: PhantomData<(&'a (), &'b ())>,
     ) -> DbResult<DbList<User<'a>>, Self> {
-        let res: Vec<InnerUser<'a>>;
-        let conn = self.get()?;
-
         let offset = Self::compute_offset(page);
         let types: Option<Vec<DbWrapper<UserTypes>>> = if auth.is_admin() {
             filter
@@ -214,8 +228,6 @@ where
 
         let count_query = users::dsl::users.select(count_star()).into_boxed::<B>();
         let count_query = InnerUser::filter(count_query, filter, types_ref);
-        let count = Self::compute_count(exec!(count_query, conn, first)?);
-        let page_max = Self::compute_page_max(count);
 
         let query = users::dsl::users
             .select(InnerUser::keys())
@@ -223,7 +235,16 @@ where
             .offset(offset)
             .into_boxed::<B>();
         let query = InnerUser::filter(query, filter, types_ref);
-        res = exec!(query, conn, load)?;
+
+        let (count, res) = task::block_in_place(|| {
+            let conn = self.get()?;
+            let count = exec!(count_query, conn, first)?;
+            let res: Vec<InnerUser<'a>> = exec!(query, conn, load)?;
+            Ok((count, res))
+        })?;
+
+        let count = Self::compute_count(count);
+        let page_max = Self::compute_page_max(count);
 
         Ok(DbList {
             data: res.into_iter().map(|v| v.into()).collect(),
@@ -234,7 +255,9 @@ where
     }
 }
 
-impl<'a, A, B, C: 'static + Connection> Create<A, User<'a>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C: 'static + Connection> Create<'a, A, User<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -251,14 +274,17 @@ where
     DbWrapper<UserTypes>: Queryable<DbWrapper<UserTypes>, B>,
 {
     #[inline]
-    fn create(&self, object: &User<'a>, _auth: &A) -> DbResult<(), Self> {
-        let conn = self.get()?;
-        let query = insert_into(entity::dsl::entity).values((
+    async fn create(
+        &self,
+        object: &User<'a>,
+        _auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
+        let entity_query = insert_into(entity::dsl::entity).values((
             entity::id.eq(BinaryWrapper(&object.entity_id)),
             entity::type_.eq(DbWrapper(EntityTypes::User)),
         ));
-        let _ = exec_unique!(query, conn, execute)?;
-        let query = insert_into(users::dsl::users).values((
+        let users_query = insert_into(users::dsl::users).values((
             users::entity_id.eq(BinaryWrapper(&object.entity_id)),
             users::uid.eq(&object.uid),
             users::name.eq(&object.name),
@@ -266,7 +292,12 @@ where
             users::password.eq(&object.password),
             users::type_.eq(DbWrapper(object.type_)),
         ));
-        exec_unique!(query, conn, execute).map(|_| ())
+
+        task::block_in_place(|| {
+            let conn = self.get()?;
+            let _ = exec_unique!(entity_query, conn, execute)?;
+            exec_unique!(users_query, conn, execute).map(|_| ())
+        })
         // if let DbResult::Ok(_) = res {
         //     let details = Cow::Owned(
         //         json!({
@@ -289,7 +320,9 @@ where
     }
 }
 
-impl<'a, A, B, C: 'static + Connection> Save<A, User<'a>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C: 'static + Connection> Save<'a, A, User<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -305,8 +338,12 @@ where
     DbWrapper<UserTypes>: Queryable<DbWrapper<UserTypes>, B>,
 {
     #[inline]
-    fn save(&self, object: &User<'a>, _auth: &A) -> DbResult<(), Self> {
-        let conn = self.get()?;
+    async fn save(
+        &self,
+        object: &User<'a>,
+        _auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
         let query = update(users::dsl::users.find(BinaryWrapper(&object.entity_id)))
             .set((
                 users::entity_id.eq(BinaryWrapper(&object.entity_id)),
@@ -316,11 +353,16 @@ where
                 users::password.eq(&object.password),
                 users::type_.eq(DbWrapper(object.type_)),
             ));
-        exec_unique!(query, conn, execute).map(|_| ())
+        task::block_in_place(|| {
+            let conn = self.get()?;
+            exec_unique!(query, conn, execute).map(|_| ())
+        })
     }
 }
 
-impl<A, B, C> Delete<A, User<'_>, Self> for DieselDB<C>
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C> Delete<'a, A, User<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -333,15 +375,22 @@ where
     bool: ToSql<Bool, B>,
 {
     #[inline]
-    fn delete(&self, ids: &[Id], auth: &A) -> DbResult<(), Self> {
+    async fn delete(
+        &self,
+        ids: &[Id],
+        auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
         if auth.is_admin() {
-            let conn = self.get()?;
             let ids: Vec<BinaryWrapper<&Id>> =
                 ids.iter().map(BinaryWrapper).collect();
             let query = diesel::delete(users::dsl::users)
                 .filter(users::entity_id.eq_any(&ids))
                 .into_boxed::<B>();
-            let _ = exec!(query, conn, execute)?;
+            let _ = task::block_in_place(|| {
+                let conn = self.get()?;
+                exec!(query, conn, execute)
+            })?;
         }
         Ok(())
     }

@@ -7,9 +7,11 @@ use crate::{
     BinaryWrapper, DbWrapper, DieselDB,
 };
 use core_common::{
+    async_trait::async_trait,
     database::{DatabaseError, DbResult, FetchById},
     objects::Entity,
     sec::Auth,
+    tokio::task,
     types::{EntityTypes, Id},
 };
 use diesel::{
@@ -20,7 +22,7 @@ use diesel::{
     Connection, ExpressionMethods, JoinOnDsl, NullableExpressionMethods,
     OptionalExtension, QueryDsl, Queryable, RunQueryDsl,
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, marker::PhantomData};
 
 #[derive(Debug, Clone, Queryable)]
 struct InnerEntity<'a> {
@@ -73,8 +75,9 @@ impl<'a> Into<Entity<'a>> for InnerEntity<'a> {
     }
 }
 
+#[async_trait]
 #[allow(clippy::type_repetition_in_bounds)]
-impl<'a, B, C, A> FetchById<'_, A, Entity<'a>, Self> for DieselDB<C>
+impl<'a, B, C, A> FetchById<'a, A, Entity<'a>, Self> for DieselDB<C>
 where
     A: Auth,
     B: 'static
@@ -88,9 +91,13 @@ where
     DbWrapper<EntityTypes>: Queryable<DbWrapper<EntityTypes>, B>,
 {
     #[inline]
-    fn fetch(&self, id: &Id, _auth: &A) -> DbResult<Option<Entity<'a>>, Self> {
+    async fn fetch(
+        &self,
+        id: &Id,
+        _auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<Option<Entity<'a>>, Self> {
         let res: Option<InnerEntity<'a>>;
-        let conn = self.get()?;
 
         let query = entity::dsl::entity
             .left_join(users::dsl::users.on(users::entity_id.eq(entity::id)))
@@ -104,7 +111,10 @@ where
             )
             .select(InnerEntity::keys())
             .filter(entity::id.eq(BinaryWrapper(id)));
-        res = exec_opt!(query, conn, first)?;
+        res = task::block_in_place(|| {
+            let conn = self.get()?;
+            exec_opt!(query, conn, first)
+        })?;
         Ok(res.map(|v| v.into()))
     }
 }

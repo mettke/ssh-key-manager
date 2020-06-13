@@ -4,7 +4,9 @@ use crate::{
     error::DieselError, exec, migrate::Migrate, schema::group_member, BinaryWrapper,
 };
 use core_common::{
+    async_trait::async_trait,
     database::{Database, DatabaseError, DbResult},
+    tokio::task,
     types::Id,
 };
 use diesel::{
@@ -102,6 +104,7 @@ impl<T: 'static + Connection> fmt::Debug for DieselDB<T> {
     }
 }
 
+#[async_trait]
 impl<B, C> Database for DieselDB<C>
 where
     B: 'static
@@ -114,37 +117,41 @@ where
     type DatabaseError = DieselError;
 
     #[inline]
-    fn generate_id(&self) -> Result<Id, DatabaseError<Self>> {
-        let conn = self.get()?;
+    async fn generate_id(&self) -> Result<Id, DatabaseError<Self>> {
         let uuid = select(GEN_UUID);
-        exec!(uuid, conn, first).map(|id: BinaryWrapper<Id>| id.0)
+        task::block_in_place(|| {
+            let conn = self.get()?;
+            exec!(uuid, conn, first).map(|id: BinaryWrapper<Id>| id.0)
+        })
     }
 
     #[inline]
-    fn fetch_permission_ids<'a>(
+    async fn fetch_permission_ids<'a>(
         &self,
         entity_id: Cow<'a, Id>,
     ) -> Result<Vec<Cow<'a, Id>>, DatabaseError<Self>> {
-        let conn = self.get()?;
-        let mut set = HashSet::new();
-        let mut vec = vec![BinaryWrapper(entity_id)];
-        while !vec.is_empty() {
-            let i = 0;
-            while i < vec.len() {
-                #[allow(clippy::indexing_slicing)]
-                let id = &vec[i];
-                if set.contains(&id.0) {
-                    let _ = vec.swap_remove(i);
-                } else {
-                    let _ = set.insert(id.0.clone());
+        task::block_in_place(|| {
+            let conn = self.get()?;
+            let mut set = HashSet::new();
+            let mut vec = vec![BinaryWrapper(entity_id)];
+            while !vec.is_empty() {
+                let i = 0;
+                while i < vec.len() {
+                    #[allow(clippy::indexing_slicing)]
+                    let id = &vec[i];
+                    if set.contains(&id.0) {
+                        let _ = vec.swap_remove(i);
+                    } else {
+                        let _ = set.insert(id.0.clone());
+                    }
                 }
+                let query = group_member::dsl::group_member
+                    .select(group_member::group_id)
+                    .filter(group_member::member_id.eq_any(vec));
+                vec = exec!(query, conn, load)?;
             }
-            let query = group_member::dsl::group_member
-                .select(group_member::group_id)
-                .filter(group_member::member_id.eq_any(vec));
-            vec = exec!(query, conn, load)?
-        }
-        Ok(set.into_iter().collect())
+            Ok(set.into_iter().collect())
+        })
     }
 
     #[inline]
