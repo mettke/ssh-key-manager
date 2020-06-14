@@ -365,6 +365,7 @@ name = "core_app"
 version = "0.1.0"
 dependencies = [
  "core_common",
+ "core_macros",
  "core_views",
  "mime_guess",
 ]

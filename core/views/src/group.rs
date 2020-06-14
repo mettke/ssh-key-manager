@@ -1,7 +1,9 @@
 use core_common::{
     chrono::offset::Utc,
-    database::{Create, Database, DatabaseError, DbList, FetchAll, FetchById},
-    objects::{Entity, Group, GroupFilter, GroupMember, User},
+    database::{
+        Create, Database, DatabaseError, DbList, DeleteObj, FetchAll, FetchById,
+    },
+    objects::{Entity, Group, GroupFilter, GroupMember, GroupMemberEntry, User},
     sec::{Auth, CsrfToken},
     serde::Serialize,
     types::Id,
@@ -160,7 +162,7 @@ impl GroupView<'_> {
         }
     }
 
-    /// Creates a `Group` using the information in the request body
+    /// Adds a member to the given group
     ///
     /// # Errors
     /// Fails when database connection fails
@@ -211,6 +213,60 @@ impl GroupView<'_> {
             Ok([Notification::Error {
                 name: "Group",
                 para: "Username",
+                help: "../help/#group_err",
+            }])
+        }
+    }
+
+    /// Removes a user from the given group
+    ///
+    /// # Errors
+    /// Fails when database connection fails
+    #[inline]
+    #[allow(unused_lifetimes, clippy::needless_lifetimes)]
+    pub async fn del_member_user<'e, A, D, T, R>(
+        req: &mut R,
+        id: Id,
+        uid: &str,
+        csrf: &CsrfToken,
+    ) -> Result<[Notification<'e>; 1], AppError<A, D, T, R>>
+    where
+        A: Auth,
+        for<'b, 'c> D: Database
+            + FetchAll<'b, 'c, A, Group<'b>, GroupFilter<'c>, D>
+            + DeleteObj<'b, A, GroupMemberEntry<'b>, D>,
+        T: TemplateEngine,
+        R: Request<A, D, T>,
+    {
+        if !csrf.valid {
+            return Ok([Notification::Error {
+                name: "Group",
+                para: "csrf",
+                help: "../../help/#group_err",
+            }]);
+        }
+        let db = req.get_database();
+        let auth = req.get_auth();
+        if let Ok(uid) = Id::from_string(uid) {
+            let member = GroupMemberEntry {
+                group_id: Cow::Owned(id),
+                member: Cow::Owned(uid),
+            };
+            match db.delete_obj(&member, auth, PhantomData).await {
+                Err(err @ DatabaseError::Custom(_)) => {
+                    Err(AppError::DatabaseError(err))
+                }
+                Err(DatabaseError::NonUnique) => Ok([Notification::Unique {
+                    name: "Group",
+                    para: "Username",
+                    help: "../help/#group_err",
+                }]),
+                Ok(()) => Ok([Notification::Modified { name: "Group" }]),
+            }
+        } else {
+            Ok([Notification::Error {
+                name: "Group",
+                para: "Uid",
                 help: "../help/#group_err",
             }])
         }

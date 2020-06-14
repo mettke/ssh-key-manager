@@ -23,7 +23,7 @@ active
 		<p>No members have been added to this group yet.</p>
 		{{else}}
 		<form method="post" action="">
-			{{!-- <?php out($this->get('active_user')->get_csrf_field(), ESC_NONE) ?> --}}
+        	<input type="hidden" id="csrf" name="csrf" value="{{csrf}}">
 			{{#if sub.group.system}}
 			<div class="alert alert-info">
 				This is a system group. Its membership list cannot be edited.
@@ -60,7 +60,7 @@ active
 						</td>
 						{{#unless @root.sub.group.system}}
 						<td>
-							<button type="submit" name="delete_member" value="{{this.entity_id}}"
+							<button type="submit" name="delete_member" value="{{this.member.entity_id}}"
 								class="btn btn-default btn-xs"><span class="glyphicon glyphicon-ban-circle"></span>
 								Remove from group</button>
 						</td>

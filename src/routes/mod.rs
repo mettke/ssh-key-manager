@@ -3,10 +3,13 @@ mod auth;
 
 use core_app::rstatic;
 use core_common::{
-    database::{Create, Database, Delete, FetchAll, FetchById, FetchByUid, Save},
+    database::{
+        Create, Database, Delete, DeleteObj, FetchAll, FetchById, FetchByUid, Save,
+    },
     http::{method::Method, response::Response, status::StatusCode},
     objects::{
-        Entity, Group, GroupFilter, GroupMember, PublicKey, PublicKeyFilter, User,
+        Entity, Group, GroupFilter, GroupMember, GroupMemberEntry, PublicKey,
+        PublicKeyFilter, User,
     },
     sec::{Auth, PreAuth},
     types::Id,
@@ -35,6 +38,7 @@ where
         + Create<'a, A, GroupMember<'a, Cow<'a, Id>>, D>
         + Delete<'a, A, PublicKey<'a>, D>
         + Delete<'a, A, Group<'a>, D>
+        + DeleteObj<'b, A, GroupMemberEntry<'b>, D>
         + Save<'a, PreAuth, User<'a>, D>
         + FetchAll<'a, 'b, A, PublicKey<'a>, PublicKeyFilter<'b>, D>
         + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>
@@ -94,6 +98,7 @@ where
         + Create<'a, A, GroupMember<'a, Cow<'a, Id>>, D>
         + Delete<'a, A, PublicKey<'a>, D>
         + Delete<'a, A, Group<'a>, D>
+        + DeleteObj<'b, A, GroupMemberEntry<'b>, D>
         + Save<'a, PreAuth, User<'a>, D>
         + FetchAll<'a, 'b, A, PublicKey<'a>, PublicKeyFilter<'b>, D>
         + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>

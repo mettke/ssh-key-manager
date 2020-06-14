@@ -58,9 +58,12 @@ mod routes;
 
 use crate::args::{get_arguments, AuthType, CliArguments};
 use core_common::{
-    database::{Create, Database, Delete, FetchAll, FetchById, FetchByUid, Save},
+    database::{
+        Create, Database, Delete, DeleteObj, FetchAll, FetchById, FetchByUid, Save,
+    },
     objects::{
-        Entity, Group, GroupFilter, GroupMember, PublicKey, PublicKeyFilter, User,
+        Entity, Group, GroupFilter, GroupMember, GroupMemberEntry, PublicKey,
+        PublicKeyFilter, User,
     },
     sec::{Auth, OAuth2, PreAuth},
     tokio::{fs, signal},
@@ -176,6 +179,7 @@ async fn build_server<A, D, T>(
         + Create<'a, A, GroupMember<'a, Cow<'a, Id>>, D>
         + Delete<'a, A, PublicKey<'a>, D>
         + Delete<'a, A, Group<'a>, D>
+        + DeleteObj<'b, A, GroupMemberEntry<'b>, D>
         + Save<'a, PreAuth, User<'a>, D>
         + FetchAll<'a, 'b, A, PublicKey<'a>, PublicKeyFilter<'b>, D>
         + FetchAll<'a, 'b, A, Group<'a>, GroupFilter<'b>, D>

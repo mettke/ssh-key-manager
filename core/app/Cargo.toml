@@ -12,5 +12,6 @@ categories = ["api-bindings"]
 
 [dependencies]
 core_common = { path = "../common" }
+core_macros = { path = "../macros" }
 core_views = { path = "../views" }
 mime_guess = "2.0"

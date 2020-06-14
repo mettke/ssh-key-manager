@@ -12,7 +12,7 @@ pub use self::{
     entity::Entity,
     event::{Event, EventFilter},
     group::{Group, GroupFilter},
-    group_member::GroupMember,
+    group_member::{GroupMember, GroupMemberEntry},
     public_key::{PublicKey, PublicKeyConversionError, PublicKeyFilter},
     server::{Server, ServerFilter},
     user::{User, UserFilter},

@@ -46,6 +46,7 @@
 extern crate proc_macro;
 
 mod enum_from;
+mod from_form;
 
 use proc_macro::TokenStream;
 
@@ -54,4 +55,11 @@ use proc_macro::TokenStream;
 /// Create a `TryFrom` for an enum
 pub fn enum_from(input: TokenStream) -> TokenStream {
     enum_from::enum_from(input)
+}
+
+#[inline]
+#[proc_macro_derive(FromForm)]
+/// Creates a struct from a Cow Iterator
+pub fn from_form(input: TokenStream) -> TokenStream {
+    from_form::from_form(input)
 }

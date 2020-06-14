@@ -9,8 +9,8 @@ use crate::{
 use core_common::{
     async_trait::async_trait,
     chrono::NaiveDateTime,
-    database::{Create, DatabaseError, DbList, DbResult, FetchAll},
-    objects::{Entity, GroupMember},
+    database::{Create, DatabaseError, DbList, DbResult, DeleteObj, FetchAll},
+    objects::{Entity, GroupMember, GroupMemberEntry},
     sec::Auth,
     tokio::task,
     types::{EntityTypes, Id},
@@ -200,5 +200,37 @@ where
         //     };
         //     self.create(&event, auth)?;
         // }
+    }
+}
+
+#[async_trait]
+#[allow(unused_lifetimes)]
+impl<'a, A, B, C> DeleteObj<'a, A, GroupMemberEntry<'a>, Self> for DieselDB<C>
+where
+    A: Auth,
+    B: 'static
+        + Backend<RawValue = [u8]>
+        + Backend
+        + UsesAnsiSavepointSyntax
+        + SupportsDefaultKeyword,
+    C: 'static
+        + Connection<Backend = B, TransactionManager = AnsiTransactionManager>
+        + Migrate,
+{
+    #[inline]
+    async fn delete_obj(
+        &self,
+        object: &GroupMemberEntry<'a>,
+        _auth: &A,
+        _: PhantomData<&'a ()>,
+    ) -> DbResult<(), Self> {
+        let query = diesel::delete(group_member::dsl::group_member)
+            .filter(group_member::group_id.eq(BinaryWrapper(&object.group_id)))
+            .filter(group_member::member_id.eq(BinaryWrapper(&object.member)));
+        let _ = task::block_in_place(|| {
+            let conn = self.get()?;
+            exec!(query, conn, execute)
+        })?;
+        Ok(())
     }
 }

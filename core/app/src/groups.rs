@@ -1,10 +1,12 @@
 use core_common::{
-    database::{Create, Database, Delete, FetchAll, FetchById, FetchByUid},
+    database::{
+        Create, Database, Delete, DeleteObj, FetchAll, FetchById, FetchByUid,
+    },
     http::{
         method::Method,
         response::{self, Response},
     },
-    objects::{Entity, Group, GroupFilter, GroupMember, User},
+    objects::{Entity, Group, GroupFilter, GroupMember, GroupMemberEntry, User},
     sec::{Auth, CsrfToken},
     types::Id,
     url::form_urlencoded,
@@ -13,6 +15,7 @@ use core_common::{
         BaseContainer, Notification, Request, ResponseType, TemplateEngine,
     },
 };
+use core_macros::FromForm;
 use core_views::{GroupListView, GroupView};
 use std::{borrow::Cow, marker::PhantomData};
 
@@ -35,7 +38,8 @@ where
         + FetchById<'a, A, Group<'a>, D>
         + Create<'a, A, Group<'a>, D>
         + Create<'a, A, GroupMember<'a, Cow<'a, Id>>, D>
-        + Delete<'a, A, Group<'a>, D>,
+        + Delete<'a, A, Group<'a>, D>
+        + DeleteObj<'b, A, GroupMemberEntry<'b>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {
@@ -151,7 +155,8 @@ where
         + FetchById<'a, A, Group<'a>, D>
         + Create<'a, A, Group<'a>, D>
         + Create<'a, A, GroupMember<'a, Cow<'a, Id>>, D>
-        + Delete<'a, A, Group<'a>, D>,
+        + Delete<'a, A, Group<'a>, D>
+        + DeleteObj<'b, A, GroupMemberEntry<'b>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
 {
@@ -196,6 +201,14 @@ where
     serve_template(req, res, "site_group", &container)
 }
 
+#[derive(FromForm, Default)]
+struct GroupData<'a> {
+    username: Option<Cow<'a, str>>,
+    add_member: Option<Cow<'a, str>>,
+    delete_member: Option<Cow<'a, str>>,
+    csrf: Option<Cow<'a, str>>,
+}
+
 async fn group_post<A, D, T, R>(
     req: &mut R,
     res: response::Builder,
@@ -209,6 +222,7 @@ where
         + FetchByUid<'a, A, User<'a>, D>
         + FetchById<'a, A, Group<'a>, D>
         + Delete<'a, A, Group<'a>, D>
+        + DeleteObj<'b, A, GroupMemberEntry<'b>, D>
         + Create<'a, A, GroupMember<'a, Cow<'a, Id>>, D>,
     T: TemplateEngine,
     R: Request<A, D, T>,
@@ -220,25 +234,26 @@ where
         Ok(id) => id,
     };
     let bytes = req.body_as_bytes().await?;
-    let body = form_urlencoded::parse(&bytes).fold((None, None), |acc, (k, v)| {
-        if v.is_empty() {
-            return acc;
-        }
-        match k.as_ref() {
-            "username" => (Some(v), acc.1),
-            "csrf" => (acc.0, Some(v)),
-            _ => acc,
-        }
-    });
+    let data = GroupData::from(form_urlencoded::parse(&bytes));
 
     let auth = req.get_auth();
     let db = req.get_database();
-    let username = if let Some(uid) = body.0 {
-        db.fetch_by_uid(&uid, auth, PhantomData).await?
+    let csrf = CsrfToken::verify(req, data.csrf.as_deref());
+    let noti = if data.add_member.as_ref().map(|v| v.as_ref()) == Some("1") {
+        let username = if let Some(uid) = data.username {
+            db.fetch_by_uid(&uid, auth, PhantomData).await?
+        } else {
+            None
+        };
+        GroupView::add_member_user(req, id, username.as_ref(), &csrf).await?
+    } else if let Some(uid) = data.delete_member {
+        GroupView::del_member_user(req, id, &uid, &csrf).await?
     } else {
-        None
+        [Notification::Error {
+            name: "Group",
+            para: "operation",
+            help: "../../help/#group_err",
+        }]
     };
-    let csrf = CsrfToken::verify(req, body.1.as_deref());
-    let noti = GroupView::add_member_user(req, id, username.as_ref(), &csrf).await?;
     group_get(req, res, group, Some(&noti), csrf).await
 }
