@@ -231,28 +231,44 @@ impl<'a, I: Iterator<Item = (Cow<'a, str>, Cow<'a, str>)>> From<I>
 mod tests {
     use super::{PublicKey, PublicKeyFilter};
     use crate::{
+        async_trait::async_trait,
         database::{Database, DatabaseError},
         types::{FingerprintMd5, FingerprintSha256, Id},
     };
-    use std::borrow::Cow;
+    use std::{borrow::Cow, error, fmt};
 
+    #[derive(Debug)]
+    struct TestErr;
+    impl error::Error for TestErr {}
+    impl fmt::Display for TestErr {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "TestError")
+        }
+    }
+
+    #[derive(Debug)]
     struct TestDb;
-
+    #[async_trait]
     impl Database for TestDb {
-        fn generate_id(&self) -> Result<Id, DatabaseError> {
+        type DatabaseError = TestErr;
+
+        async fn generate_id(&self) -> Result<Id, DatabaseError<TestDb>> {
             let key_id: String = r"00bd8c06-daf7-47e6-8c96-8d467587b6dc".into();
             Ok(Id::from_string(key_id).expect("Invalid Id"))
         }
-        fn fetch_permission_ids<'a>(
+        async fn fetch_permission_ids<'a>(
             &self,
             _entity_id: Cow<'a, Id>,
-        ) -> Result<Vec<Cow<'a, Id>>, DatabaseError> {
+        ) -> Result<Vec<Cow<'a, Id>>, DatabaseError<TestDb>> {
+            unimplemented!()
+        }
+        async fn migrate(&self) -> Result<(), DatabaseError<Self>> {
             unimplemented!()
         }
     }
 
-    #[test]
-    fn parse() {
+    #[tokio::test]
+    async fn parse() {
         let owner_id = r"c6efb44e-9b67-4dc0-a31b-6482476ed8b7";
         let key_str = r"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDS6o9i9w5eFXEUcQMhOvupIhPFdb1evYoYPmTDSkoejpZF+u7PHfPanSXc/95UbsOuBLENgIGnr/1gN9Vvok/XqZc+UnODyAKztdGx8za9Zhxe3BBxs1R1UJ5Ri5U+WQkvedUYJs2vvl67ZkMFOV49gILjHD8Lq43lU3pyPupmKtq3dRzCyFQk9smx4eyW9vWaPgKHHMeFvoO2coMg9vF06vuFb5H/KqEO58GYgy45Zc+sePOWA6i4z9uBWQyTUzpHrT8TpQABunIfx6KGwyt+7y8LzCbsks7R/HE67PNJz9bb7lBXraqBMFfFhciiHDgnppt8BY/MCeF7OLcsyhztaBJyz6v04c4jiHX32FfsL8w57fPU9paCj6RnSbCcB4hrsuqpCnAEClLSBhrFa/3agucst7VP6Z+pabzh+lNjuwWh9FR7/zB3sBNhQDpMwJyuOcwLKj+uThZGfzIpRSIfUK7WX2msCqlgCnP7ELkinj8fETXEFg1mL66VgpYuFHM= testkey";
         let fingerprint_md5 = FingerprintMd5::from_string(
@@ -286,11 +302,12 @@ mod tests {
 +----[SHA256]-----+"#;
 
         let db = TestDb;
-        let id = db.generate_id().expect("Unable to generate id");
+        let id = db.generate_id().await.expect("Unable to generate id");
 
         let entity_id = Id::from_string(owner_id).expect("Invalid Id");
-        let key =
-            PublicKey::parse(key_str, &entity_id, &db).expect("Unable to parse key");
+        let key = PublicKey::parse(key_str, &entity_id, &db)
+            .await
+            .expect("Unable to parse key");
 
         assert_eq!(key.id, Cow::Owned(id));
         assert_eq!(key.entity_id, Cow::Borrowed(&entity_id));

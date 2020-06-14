@@ -153,23 +153,28 @@ where
     }
 
     #[inline]
-    fn migrate(&self) -> Result<(), DatabaseError<Self>> {
+    async fn migrate(&self) -> Result<(), DatabaseError<Self>> {
         let mut err = DatabaseError::Custom(DieselError::NoServerAvailable);
         let mut migrated = false;
-        for pool in &self.pools {
-            if let Err(inner) = pool
-                .get_timeout(Duration::from_millis(1000))
-                .map_err(|err| DatabaseError::Custom(DieselError::R2D2Error(err)))
-                .and_then(|conn| {
-                    C::migrate(&conn)
-                        .map_err(DieselError::MigrationError)
-                        .map_err(DatabaseError::Custom)
-                })
-                .map(|_| migrated = true)
-            {
-                err = inner;
+
+        task::block_in_place(|| {
+            for pool in &self.pools {
+                if let Err(inner) = pool
+                    .get_timeout(Duration::from_millis(1000))
+                    .map_err(|err| {
+                        DatabaseError::Custom(DieselError::R2D2Error(err))
+                    })
+                    .and_then(|conn| {
+                        C::migrate(&conn)
+                            .map_err(DieselError::MigrationError)
+                            .map_err(DatabaseError::Custom)
+                    })
+                    .map(|_| migrated = true)
+                {
+                    err = inner;
+                }
             }
-        }
+        });
         if migrated {
             Ok(())
         } else {
@@ -225,9 +230,10 @@ where
     #[inline]
     pub fn get(&self) -> DbResult<PooledConnection<ConnectionManager<C>>, Self> {
         let mut err = None;
-        for pool in &self.pools {
+        let len = self.pools.len();
+        for (i, pool) in self.pools.iter().enumerate() {
             let state = pool.state();
-            if state.connections != 0 {
+            if state.connections != 0 || i + 1 == len {
                 match pool.get_timeout(Duration::from_millis(100)) {
                     Ok(conn) => return Ok(conn),
                     Err(e) => err = Some(e),

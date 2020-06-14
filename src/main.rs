@@ -129,7 +129,7 @@ async fn main() {
             }
         }
     };
-    if let Err(err) = database.migrate() {
+    if let Err(err) = database.migrate().await {
         log::error!("Unable to migrate database: {}", err);
         exit(1);
     }

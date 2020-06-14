@@ -8,7 +8,11 @@ rust:
 os: linux
 env: RUST_BACKTRACE=full
 
+services:
+  - postgresql
+
 before_script:
+  - psql -c 'create database skm;' -U postgres
   - cargo install cargo-patch
   - ./bin/patch.sh
   - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo install cargo-audit; fi
@@ -18,6 +22,7 @@ before_script:
 script:
   - cargo build
   - if [[ "$TRAVIS_RUST_VERSION" == "1.41.1" ]]; then cargo clippy; fi
+  - cargo test --workspace
   - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo tree; fi
   - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo audit; fi
   

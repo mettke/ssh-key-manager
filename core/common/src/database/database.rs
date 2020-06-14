@@ -28,5 +28,5 @@ pub trait Database: Sized + Send + Sync + Debug {
     ///
     /// # Errors
     /// Fails on connection or deserialisation errors.
-    fn migrate(&self) -> Result<(), DatabaseError<Self>>;
+    async fn migrate(&self) -> Result<(), DatabaseError<Self>>;
 }

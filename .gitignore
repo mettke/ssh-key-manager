@@ -19,3 +19,7 @@ openidconnect-rs
 skm.drawio
 skm.pdf
 .vscode
+
+bin/update_check.sh
+cert.key
+cert.pem

@@ -43,6 +43,7 @@
     clippy::module_name_repetitions
 )]
 
+#[rustversion::before(1.42.0)]
 extern crate proc_macro;
 
 mod enum_from;

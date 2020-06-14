@@ -13,6 +13,8 @@ mod fetch_by_id;
 mod fetch_by_uid;
 mod fetch_first;
 mod save;
+#[doc(hidden)]
+pub mod tests;
 
 /// Result type for Database Communication
 pub type DbResult<T, D> = Result<T, DatabaseError<D>>;
