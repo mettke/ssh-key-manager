@@ -1,7 +1,7 @@
 dist: trusty
 language: rust
 rust:
-  - 1.43.0
+  - 1.41.1
   - stable
   - beta
   - nightly
@@ -13,11 +13,11 @@ before_script:
   - ./bin/patch.sh
   - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo install cargo-audit; fi
   - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo install cargo-tree; fi
-  - if [[ "$TRAVIS_RUST_VERSION" == "1.41.0" ]]; then rustup component add clippy; fi
+  - if [[ "$TRAVIS_RUST_VERSION" == "1.41.1" ]]; then rustup component add clippy; fi
 
 script:
   - cargo build
-  - if [[ "$TRAVIS_RUST_VERSION" == "1.41.0" ]]; then cargo clippy; fi
+  - if [[ "$TRAVIS_RUST_VERSION" == "1.41.1" ]]; then cargo clippy; fi
   - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo tree; fi
   - if [[ "$TRAVIS_RUST_VERSION" == "stable" ]]; then cargo audit; fi
   

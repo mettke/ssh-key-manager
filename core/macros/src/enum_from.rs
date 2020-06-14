@@ -5,7 +5,6 @@ use syn::{
     ItemEnum, Variant,
 };
 
-#[allow(clippy::redundant_pub_crate)]
 pub(crate) fn enum_from(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemEnum);
     let name = &input.ident;

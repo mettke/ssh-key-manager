@@ -30,16 +30,7 @@
     unused_results,
     variant_size_differences
 )]
-#![deny(
-    clippy::correctness,
-    clippy::restriction,
-    clippy::style,
-    clippy::pedantic,
-    clippy::complexity,
-    clippy::perf,
-    clippy::cargo,
-    clippy::nursery
-)]
+#![deny(clippy::all)]
 #![allow(
     clippy::implicit_return,
     clippy::missing_docs_in_private_items,
@@ -51,6 +42,8 @@
     clippy::multiple_crate_versions,
     clippy::module_name_repetitions
 )]
+
+extern crate proc_macro;
 
 mod enum_from;
 

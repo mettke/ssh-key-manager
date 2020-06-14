@@ -30,16 +30,7 @@
     unused_results,
     variant_size_differences
 )]
-#![deny(
-    clippy::correctness,
-    clippy::restriction,
-    clippy::style,
-    clippy::pedantic,
-    clippy::complexity,
-    clippy::perf,
-    clippy::cargo,
-    clippy::nursery
-)]
+#![deny(clippy::all)]
 #![allow(
     clippy::implicit_return,
     clippy::missing_docs_in_private_items,
@@ -50,8 +41,7 @@
     clippy::else_if_without_else,
     clippy::multiple_crate_versions,
     clippy::module_name_repetitions,
-    clippy::used_underscore_binding,
-    clippy::future_not_send
+    clippy::used_underscore_binding
 )]
 
 pub mod database;
